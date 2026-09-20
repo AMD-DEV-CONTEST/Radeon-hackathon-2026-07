@@ -1,0 +1,98 @@
+{
+  "baseline": {
+    "source": "cn_market_eval_after.json",
+    "total_cases": 24,
+    "passed": 11,
+    "failed": 13,
+    "pass_rate": 0.4583,
+    "check_rates": {
+      "json_valid": 0.75,
+      "no_forbidden_terms": 1.0,
+      "instrument_match": 0.7083,
+      "timeframe_match": 0.7083,
+      "domestic_exchange": 0.7083,
+      "short_disabled": 0.7083,
+      "constraints_valid": 0.4583,
+      "numeric_types_valid": 0.7083
+    }
+  },
+  "failure_categories": [
+    {
+      "category": "json_format_error_strategy_prefix",
+      "description": "模型输出以 strategy\": 开头（多了一个引号），导致 YAML/JSON 解析失败或解析后缺少 strategy 根节点",
+      "count": 5,
+      "case_ids": [4, 8, 11, 18, 20],
+      "fixable_by_canonicalizer": true,
+      "fixable_by_prompt": true,
+      "examples": [
+        "ID 4: 输出 strategy\": {\"name\": ... — 多余的引号导致解析失败",
+        "ID 8: 同上，strategy\": 前缀 + lot_size=1000",
+        "ID 11: strategy\": 前缀 + 缺少外层大括号",
+        "ID 18: strategy\": 前缀 + lot_size=1000",
+        "ID 20: strategy\": 前缀 + lot_size=10000"
+      ]
+    },
+    {
+      "category": "lot_size_wrong_value",
+      "description": "JSON/YAML 解析成功，但 constraints.lot_size 输出为 1000 或 10000，而不是要求的 100",
+      "count": 6,
+      "case_ids": [2, 9, 10, 14, 15, 16],
+      "fixable_by_canonicalizer": true,
+      "fixable_by_prompt": true,
+      "examples": [
+        "ID 2: lot_size=10000（应为 100）",
+        "ID 9: lot_size=10000",
+        "ID 10: lot_size=1000",
+        "ID 14: lot_size=10000",
+        "ID 15: lot_size=10000",
+        "ID 16: lot_size=10000"
+      ]
+    },
+    {
+      "category": "degenerate_repeated_output",
+      "description": "模型输出退化为重复字符（大量 0），达到 max_tokens 上限，无法解析",
+      "count": 2,
+      "case_ids": [12, 24],
+      "fixable_by_canonicalizer": false,
+      "fixable_by_prompt": true,
+      "examples": [
+        "ID 12: 输出 CN_ema_adx_filter_20_60_25_1 后接大量 0，无法解析",
+        "ID 24: 同上模式，ADX 过滤策略场景下退化为重复 0"
+      ]
+    }
+  ],
+  "combined_failures": [
+    {
+      "case_id": 8,
+      "categories": ["json_format_error_strategy_prefix", "lot_size_wrong_value"],
+      "note": "strategy\": 前缀 + lot_size=1000"
+    },
+    {
+      "case_id": 18,
+      "categories": ["json_format_error_strategy_prefix", "lot_size_wrong_value"],
+      "note": "strategy\": 前缀 + lot_size=1000"
+    },
+    {
+      "case_id": 20,
+      "categories": ["json_format_error_strategy_prefix", "lot_size_wrong_value"],
+      "note": "strategy\": 前缀 + lot_size=10000"
+    }
+  ],
+  "summary": {
+    "total_failures": 13,
+    "fixable_by_canonicalizer_only": 11,
+    "fixable_by_prompt_only": 2,
+    "fixable_by_both": 11,
+    "not_fixable_without_retraining": 2,
+    "root_causes": [
+      "1. 模型在部分模板中输出 strategy\": 而非 strategy:（5/13 = 38.5%）",
+      "2. 模型对 lot_size 的理解不稳定，经常输出 1000 或 10000（9/13 = 69.2%）",
+      "3. ADX 过滤策略模板触发模型退化（2/13 = 15.4%）"
+    ],
+    "recommended_fixes": [
+      "A. Prompt v2 使用 YAML 格式 + 示例强化 lot_size=100",
+      "B. 实验版 canonicalizer 强制 lot_size=100 + 修复 strategy\": 前缀",
+      "C. ADX 退化问题需 prompt 引导或增加 stop tokens"
+    ]
+  }
+}

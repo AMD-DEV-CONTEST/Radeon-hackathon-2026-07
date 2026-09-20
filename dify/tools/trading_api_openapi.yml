@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: Crypto Trading Agent API
+  description: >
+    API for the crypto trading agent. Provides market data,
+    backtesting, and paper trading endpoints.
+    Used by Dify as custom API tools.
+  version: 1.0.0
+  contact:
+    name: AMD Hackathon Track 2
+
+servers:
+  - url: http://host.docker.internal:8080
+    description: Trading API on host (accessible from Dify Docker container)
+
+paths:
+  /api/market/summary:
+    get:
+      operationId: getMarketSummary
+      summary: Get current market summary
+      description: Fetches real-time price, 24h change, volume for a trading pair
+      parameters:
+        - name: pair
+          in: query
+          required: false
+          schema:
+            type: string
+            default: BTC/USDT
+          description: Trading pair (e.g. BTC/USDT, ETH/USDT)
+        - name: exchange
+          in: query
+          required: false
+          schema:
+            type: string
+            default: binance
+            enum: [binance, okx, bybit, kraken, gate]
+      responses:
+        '200':
+          description: Market summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pair:
+                    type: string
+                  last_price:
+                    type: number
+                  change_pct:
+                    type: number
+                  high_24h:
+                    type: number
+                  low_24h:
+                    type: number
+                  volume_24h:
+                    type: number
+
+  /api/market/history:
+    get:
+      operationId: getHistoricalData
+      summary: Get historical OHLCV data
+      description: Fetches historical candlestick data for analysis
+      parameters:
+        - name: pair
+          in: query
+          required: false
+          schema:
+            type: string
+            default: BTC/USDT
+        - name: timeframe
+          in: query
+          required: false
+          schema:
+            type: string
+            default: 1h
+            enum: [1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w]
+        - name: exchange
+          in: query
+          required: false
+          schema:
+            type: string
+            default: binance
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 365
+      responses:
+        '200':
+          description: Historical OHLCV data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pair:
+                    type: string
+                  timeframe:
+                    type: string
+                  count:
+                    type: integer
+                  candles:
+                    type: array
+                    items:
+                      type: object
+
+  /api/backtest:
+    post:
+      operationId: runBacktest
+      summary: Run strategy backtest
+      description: >
+        Accepts a strategy DSL specification, validates it,
+        transpiles to Freqtrade strategy, and runs a historical backtest.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                strategy:
+                  type: object
+                  description: Strategy DSL specification
+                days:
+                  type: integer
+                  default: 180
+                initial_balance:
+                  type: number
+                  default: 10000
+      responses:
+        '200':
+          description: Backtest results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  is_valid:
+                    type: boolean
+                  strategy_name:
+                    type: string
+                  metrics:
+                    type: object
+                  trades:
+                    type: array
+                  equity_curve:
+                    type: array
+                    items:
+                      type: number
+                  error:
+                    type: string
+                    nullable: true
+
+  /api/indicators/calculate:
+    post:
+      operationId: calculateIndicators
+      summary: Calculate technical indicators
+      description: Computes technical indicators (EMA, RSI, MACD, etc.) on provided candle data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                candles:
+                  type: array
+                  items:
+                    type: object
+                indicators:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Indicator values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  values:
+                    type: object
+                  last_values:
+                    type: object
+
+  /api/paper-trade/execute:
+    post:
+      operationId: executePaperTrade
+      summary: Execute paper trade on Binance Testnet
+      description: Places a simulated buy/sell order on Binance Testnet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [buy, sell, status, balance]
+                pair:
+                  type: string
+                  default: BTC/USDT
+                amount:
+                  type: number
+                  nullable: true
+      responses:
+        '200':
+          description: Trade execution result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  action:
+                    type: string
+                  pair:
+                    type: string
+                  details:
+                    type: object
+                  error:
+                    type: string
+                    nullable: true

@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  # --- Trading API (FastAPI) ---
+  trading-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backtest
+    ports:
+      - "8080:8080"
+    environment:
+      - DATA_MODE=${DATA_MODE:-deterministic_synthetic_cn_market_demo}
+    volumes:
+      - ../src:/app/src
+      - ../training:/app/training
+    restart: unless-stopped
+
+  # --- Dify (via official docker-compose) ---
+  # To start Dify:
+  #   cd dify && git clone https://github.com/langgenius/dify.git dify-src
+  #   cd dify-src/docker && cp .env.example .env
+  #   # Add: extra_hosts: ["host.docker.internal:host-gateway"]
+  #   docker compose up -d
+  #
+  # Dify services (api, web, worker, sandbox) run in their own network.
+  # They access vLLM and Trading API via host.docker.internal.
+  #
+  # Dify Web UI: http://localhost:3000
+  # Dify API:    http://localhost:5001
+  #
+  # In Dify Model Provider settings, use:
+  #   API URL: http://host.docker.internal:8000/v1
+  #   Model:   models/qwen-trader-merged
+  #
+  # In Dify Tool settings, use:
+  #   Base URL: http://host.docker.internal:8080
+
+  # --- vLLM (ROCm) — runs on host, not in Docker ---
+  # vLLM needs direct GPU access via /dev/kfd and /dev/dri.
+  # Start it on the host:
+  #   export ROCBLAS_USE_HIPBLASLT=1 HIP_VISIBLE_DEVICES=0
+  #   python -m vllm.entrypoints.openai.api_server \
+  #     --model models/qwen-trader-merged --port 8000 \
+  #     --max-model-len 32768 --gpu-memory-utilization 0.45 \
+  #     --dtype float16 --trust-remote-code --enforce-eager
+  #
+  # Or use Dockerfile.vllm with --device flags:
+  #   docker run -d --device /dev/kfd --device /dev/dri \
+  #     -p 8000:8000 -v $(pwd)/models:/models \
+  #     -e ROCBLAS_USE_HIPBLASLT=1 -e HIP_VISIBLE_DEVICES=0 \
+  #     track2-vllm

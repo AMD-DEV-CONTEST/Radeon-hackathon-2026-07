@@ -1,0 +1,97 @@
+{
+  "backup_date": "2026-08-01",
+  "remote_host": "root@***REMOVED***:31036",
+  "remote_path": "/persistent/track2",
+  "model": {
+    "merged_model": {
+      "path": "/persistent/qwen-trader-cn-merged",
+      "model_safetensors_sha256": "8806c9d59657ce30267bb13e9b59b462632a61ad2e7d8ef76b5685f79a84a23d",
+      "model_safetensors_size": "15G",
+      "architecture": "Qwen2ForCausalLM",
+      "hidden_size": 3584,
+      "num_hidden_layers": 28,
+      "num_attention_heads": 28,
+      "num_key_value_heads": 4,
+      "dtype": "float16",
+      "vocab_size": 152064
+    },
+    "lora_adapter": {
+      "path": "/persistent/track2/models/qwen-trader-cn-lora/final",
+      "adapter_model_sha256": "4b7d746f54c05ccdb2de989d9c81ffa505511c96f15b708c66d37dc055ae710e",
+      "adapter_model_size": "617M",
+      "base_model": "/persistent/qwen-trader-merged",
+      "peft_type": "LORA",
+      "peft_version": "0.18.1",
+      "r": 64,
+      "lora_alpha": 128,
+      "lora_dropout": 0.05,
+      "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+      "quantization": "none (FP16 LoRA, bitsandbytes not available)"
+    }
+  },
+  "training": {
+    "config_source": "/persistent/radeon-repo/track2-agentic-ai/training/configs/qlora_config.yaml",
+    "train_samples": 400,
+    "epochs": 3,
+    "max_steps": 39,
+    "batch_size": 2,
+    "train_runtime_seconds": 615,
+    "final_train_loss": 0.2848,
+    "final_token_accuracy": 0.981,
+    "final_entropy": 0.04016,
+    "peak_gpu_memory_gb": 16.21,
+    "log_history": [
+      {"step": 10, "loss": 0.9873, "token_accuracy": 0.8448, "lr": "9.143e-05"},
+      {"step": 20, "loss": 0.04837, "token_accuracy": 0.9794, "lr": "5.635e-05"},
+      {"step": 30, "loss": 0.04015, "token_accuracy": 0.9806, "lr": "1.697e-05"},
+      {"step": 39, "loss": 0.2848, "token_accuracy": 0.981, "lr": 0}
+    ]
+  },
+  "vllm": {
+    "version": "0.16.1.dev0+g89a77b108.d20260317",
+    "model_path": "/persistent/qwen-trader-cn-merged",
+    "served_model_name": "models/qwen-trader-merged",
+    "port": 8000,
+    "max_model_len": 4096,
+    "gpu_memory_utilization": 0.35,
+    "dtype": "float16",
+    "enforce_eager": true,
+    "trust_remote_code": true
+  },
+  "gpu": {
+    "name": "gfx1100",
+    "marketing_name": "AMD Radeon Graphics",
+    "rocm_version": "7.2.1",
+    "cpu": "AMD EPYC 9334 32-Core Processor"
+  },
+  "evaluation_before_fix": {
+    "total": 24,
+    "passed": 11,
+    "pass_rate": 0.4583,
+    "check_rates": {
+      "json_valid": 0.75,
+      "no_forbidden_terms": 1.0,
+      "instrument_match": 0.7083,
+      "timeframe_match": 0.7083,
+      "domestic_exchange": 0.7083,
+      "short_disabled": 0.7083,
+      "constraints_valid": 0.4583,
+      "numeric_types_valid": 0.7083
+    }
+  },
+  "backup_files": [
+    "eval/cn_market_eval_after.json",
+    "eval/cn_market_eval.json",
+    "eval/vllm_benchmark.json",
+    "logs/cn_auto_pipeline.log",
+    "logs/cn_qlora_train.log",
+    "logs/vllm.log",
+    "logs/cn_vllm.log",
+    "model-meta/config.json",
+    "model-meta/generation_config.json",
+    "model-meta/tokenizer_config.json",
+    "model-meta/chat_template.jinja",
+    "model-meta/lora_adapter_config.json",
+    "model-meta/trainer_state.json"
+  ]
+}

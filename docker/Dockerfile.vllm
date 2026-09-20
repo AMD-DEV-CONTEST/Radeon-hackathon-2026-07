@@ -1,0 +1,47 @@
+# Dockerfile for vLLM on AMD ROCm GPU
+# Serves fine-tuned Qwen2.5-7B model with OpenAI-compatible API
+#
+# Build:
+#   docker build -f docker/Dockerfile.vllm -t track2-vllm .
+#
+# Run (requires --device for GPU access):
+#   docker run -d --device /dev/kfd --device /dev/dri \
+#     -p 8000:8000 \
+#     -v $(pwd)/models:/models \
+#     -e ROCBLAS_USE_HIPBLASLT=1 \
+#     -e HIP_VISIBLE_DEVICES=0 \
+#     -e VLLM_USE_TRITON_FLASH_ATTN=0 \
+#     track2-vllm
+
+FROM rocm/pytorch:rocm6.2_ubuntu22.04_py3.12_pytorch_release_2.8.0
+
+WORKDIR /app
+
+# Install vLLM
+RUN pip install --no-cache-dir vllm
+
+# Copy model serving script
+COPY training/scripts/serve_vllm.sh /app/serve_vllm.sh
+RUN chmod +x /app/serve_vllm.sh
+
+# Model path expected at /models/qwen-trader-merged
+VOLUME ["/models"]
+
+EXPOSE 8000
+
+# ROCm environment
+ENV ROCBLAS_USE_HIPBLASLT=1
+ENV HIP_VISIBLE_DEVICES=0
+ENV VLLM_USE_TRITON_FLASH_ATTN=0
+ENV OMP_NUM_THREADS=8
+ENV VLLM_GPU_UTIL=0.60
+ENV VLLM_MAX_MODEL_LEN=4096
+
+CMD ["python", "-m", "vllm.entrypoints.openai.api_server", \
+     "--model", "/models/qwen-trader-merged", \
+     "--port", "8000", \
+     "--max-model-len", "4096", \
+     "--gpu-memory-utilization", "0.60", \
+     "--dtype", "float16", \
+     "--trust-remote-code", \
+     "--enforce-eager"]

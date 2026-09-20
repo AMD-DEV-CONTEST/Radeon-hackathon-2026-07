@@ -1,0 +1,69 @@
+# QLoRA Training Configuration for Qwen2.5-7B on AMD ROCm
+
+# Model
+model:
+  base_model: "Qwen/Qwen2.5-7B-Instruct"
+  trust_remote_code: true
+  torch_dtype: float16
+
+# Quantization (4-bit NF4)
+quantization:
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_compute_dtype: bfloat16  # Match bf16 training precision
+  bnb_4bit_use_double_quant: true
+
+# LoRA
+lora:
+  r: 64
+  lora_alpha: 128
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  lora_dropout: 0.05
+  bias: none
+  task_type: CAUSAL_LM
+
+# Training
+training:
+  num_train_epochs: 3
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 0.0002
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  logging_steps: 10
+  save_strategy: steps
+  save_steps: 200
+  save_total_limit: 3
+  fp16: false
+  bf16: true  # Required for ROCm + bitsandbytes (avoids GradScaler crash)
+  gradient_checkpointing: true
+  max_seq_length: 2048
+  packing: true
+  seed: 42
+
+# Data
+data:
+  train_file: "training/data/processed/merged_train.jsonl"
+  # Dataset mixing ratios (for weighted sampling)
+  source_weights:
+    fnspid: 0.3
+    fingpt: 0.3
+    dsl_pairs: 0.4
+
+# ROCm environment
+rocm:
+  ROCBLAS_USE_HIPBLASLT: 1
+  HIP_VISIBLE_DEVICES: 0
+  VLLM_USE_TRITON_FLASH_ATTN: 0
+
+# Output
+output:
+  adapter_dir: "models/qwen-trader-lora"
+  merged_dir: "models/qwen-trader-merged"

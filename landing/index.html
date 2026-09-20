@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoQuant — Domestic Market Quantitative Agent on AMD Radeon GPU</title>
+<meta name="description" content="AMD AI DevMaster Hackathon 2026 · Track 2: Agentic AI — a full-chain quantitative trading agent: natural language to risk-checked strategy, 100% on AMD Radeon GPUs. Zero CUDA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@1&family=Manrope:wght@400;500;600&display=swap&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#000000; --surface:#14141D; --surface-2:#1C1C28; --border:#2A2A3C;
+  --accent:#7B39FC; --accent-2:#A78BFA; --purple-dark:#2B2344; --data:#2EE6A8; --warn:#F5A524;
+  --text:#F5F5F7; --muted:#9CA3AF; --mono:#7DD3FC;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.2}
+.mono{font-family:'JetBrains Mono',monospace}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+section{padding:112px 0}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--accent);font-weight:500;margin-bottom:16px}
+h2{font-size:36px;margin-bottom:20px}
+.sub{color:var(--muted);font-size:18px;max-width:720px}
+.red{color:var(--accent-2)}
+.serif-i{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400}
+.glass{border-radius:24px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);padding:22.5px}
+.hero-pill{position:absolute;left:50%;top:215px;transform:translateX(-50%);width:801px;height:384px;background:#000;border-radius:999px;filter:blur(77.5px);z-index:1}
+.green{color:var(--data)}
+a{color:inherit;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:10px;font-weight:500;font-size:15px;transition:all .2s;border:1px solid transparent;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-2);box-shadow:0 0 24px rgba(237,28,36,.35)}
+.btn-secondary{border-color:var(--border);color:var(--text)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent-2)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;transition:all .2s}
+.card:hover{transform:translateY(-4px);border-color:rgba(123,57,252,.5);box-shadow:0 0 20px rgba(123,57,252,.12)}
+
+/* scroll progress */
+#progress{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0;z-index:1000}
+/* nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:900;transition:all .3s;height:102px;display:flex;align-items:center}
+nav.scrolled{background:rgba(10,10,15,.82);backdrop-filter:blur(12px);height:74px;border-bottom:1px solid var(--border)}
+nav .container{display:flex;align-items:center;justify-content:space-between;max-width:1440px;padding:0 120px;width:100%}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';font-weight:700;font-size:20px}
+.logo-mark{width:28px;height:28px;flex:none;display:block}
+.nav-links{display:flex;gap:28px;font-size:14px;color:var(--muted)}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#171717;border:1px solid #d4d4d4;padding:10px 18px;border-radius:8px;font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;line-height:22px;box-shadow:0 4px 16px rgba(23,23,23,.04);transition:all .2s;white-space:nowrap}
+.nav-cta:hover{background:#f4f4f5;color:#171717}
+.nav-purple{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fafafa;border:1px solid transparent;padding:10px 20px;border-radius:8px;font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;line-height:22px;box-shadow:0 4px 16px rgba(23,23,23,.04);transition:all .2s;white-space:nowrap}
+.nav-purple:hover{background:var(--accent-2);color:#fff}
+.hamburger{display:none;background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:18px;cursor:pointer}
+
+/* hero */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;padding:140px 0 80px}
+.hero-bg{position:absolute;inset:0;background:
+  radial-gradient(ellipse 60% 50% at 70% 30%, rgba(123,57,252,.15), transparent 60%),
+  radial-gradient(ellipse 40% 40% at 20% 70%, rgba(46,230,168,.06), transparent 60%),
+  linear-gradient(rgba(38,38,58,.25) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(38,38,58,.25) 1px, transparent 1px);
+  background-size:100% 100%,100% 100%,48px 48px,48px 48px;z-index:0}
+.hero-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center, transparent 40%, var(--bg) 100%)}
+.hero .container{position:relative;z-index:2}
+.hero-term{position:absolute;right:3%;top:196px;width:410px;z-index:1;background:rgba(10,10,16,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.45);border-radius:14px;box-shadow:0 0 40px rgba(123,57,252,.25),0 20px 60px rgba(0,0,0,.5);overflow:hidden;pointer-events:none}
+.hero h1{font-size:72px;max-width:880px;margin-bottom:28px;letter-spacing:-2px;line-height:1.15;font-family:'Manrope',sans-serif;font-weight:500}
+.hero h1 .serif-i{font-size:76px;display:block}
+.hero .sub{font-size:18px;line-height:26px;margin-bottom:40px;max-width:613px;color:#F6F7F9;opacity:.9;font-family:'Manrope',sans-serif}
+.hero-ctas{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:56px}
+.btn-purple{background:var(--accent);color:#fff;padding:14px 24px;border-radius:10px;font-family:'Cabin',sans-serif;font-weight:500;font-size:16px;line-height:1.7}
+.btn-purple:hover{background:var(--accent-2)}
+.btn-darkp{background:var(--purple-dark);color:#F6F7F9;padding:14px 24px;border-radius:10px;font-weight:500;font-size:16px;line-height:1.7}
+.btn-darkp:hover{background:#3A2F5E}
+.badges{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:64px}
+.badge{font-family:'JetBrains Mono';font-size:13px;padding:6px 14px;border-radius:999px;border:1px solid var(--border);color:var(--muted);transition:all .2s}
+.badge:hover{border-color:var(--accent);color:var(--text);box-shadow:0 0 10px rgba(123,57,252,.2)}
+.metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-top:0;margin-bottom:56px}
+.metric .num{font-family:'JetBrains Mono';font-size:32px;font-weight:500;color:var(--data)}
+.metric .label{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* dashboard console (reference spec: 1163px glass panel) */
+.dash-shell{max-width:1163px;margin:0 auto 24px;padding:20px 22.5px}
+.dash-top{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:18px}
+.dash-dots{display:flex;gap:7px}
+.dash-dots span{width:10px;height:10px;border-radius:50%}
+.dash-title{font-size:12px;color:var(--muted);flex:1}
+.dash-title em{color:var(--accent-2);font-style:normal}
+.dash-env{font-size:11px;color:var(--data);display:flex;align-items:center;gap:6px}
+.env-dot{width:6px;height:6px;border-radius:50%;background:var(--data);box-shadow:0 0 6px var(--data);animation:blink 1.6s steps(1) infinite}
+.dash-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:18px;margin-bottom:18px}
+.dash-label{font-family:'JetBrains Mono';font-size:11px;color:var(--mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.dash-input,.dash-code{min-width:0}
+.dash-input{background:rgba(10,10,16,.6);border:1px solid rgba(123,57,252,.4);border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.7;color:#E6E9F2;min-height:110px}
+.dash-input .cur{display:inline-block;width:8px;height:14px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+.dash-actions{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
+.dash-run{background:var(--accent);border:none;color:#fff;font-family:'JetBrains Mono';font-size:12.5px;padding:9px 18px;border-radius:8px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.dash-run:hover{background:var(--accent-2);box-shadow:0 0 18px rgba(123,57,252,.4)}
+.dash-flow{font-size:11.5px;color:var(--muted)}
+.dash-code{background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:12.5px;line-height:1.75;color:#d4d4e0;min-height:150px;overflow-x:auto;white-space:pre}
+.dash-code .dk{color:var(--accent-2)}
+.dash-code .dv{color:var(--data)}
+.dash-result{display:flex;align-items:center;gap:20px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 18px}
+.dash-pass{background:rgba(46,230,168,.12);color:var(--data);border:1px solid rgba(46,230,168,.4);padding:6px 16px;border-radius:999px;font-size:12.5px;white-space:nowrap;font-family:'JetBrains Mono'}
+.dash-stats{display:flex;gap:22px;flex:1;flex-wrap:wrap}
+.ds{font-size:11px;color:var(--muted);font-family:'JetBrains Mono'}
+.ds b{display:block;font-weight:400;margin-bottom:2px}
+.ds span{font-size:14px;color:#E6E9F2}
+.ds span.green{color:var(--data)}
+.dash-spark{width:200px;height:36px;flex:none}
+
+/* problem */
+.problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+.problem-card{padding:32px}
+.problem-card h3{font-size:20px;margin-bottom:12px}
+.problem-card p{color:var(--muted);font-size:15px}
+.transition-line{text-align:center;font-size:20px;color:var(--text);margin-top:64px;font-family:'Space Grotesk'}
+.transition-line em{color:var(--accent-2);font-style:normal}
+
+/* what */
+.what-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+.what-card{padding:30px}
+.what-card .icon{font-size:26px;margin-bottom:16px;display:block}
+.what-card h3{font-size:17px;margin-bottom:10px}
+.what-card p{color:var(--muted);font-size:14px}
+
+/* how */
+.how-wrap{display:grid;grid-template-columns:380px 1fr;gap:40px;margin-top:48px;align-items:start}
+.pipeline{display:flex;flex-direction:column;gap:8px}
+.pstep{padding:12px 16px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .2s;font-size:14px;display:flex;align-items:center;gap:12px}
+.pstep .n{font-family:'JetBrains Mono';color:var(--accent);font-size:12px;width:20px}
+.pstep:hover{border-color:var(--accent)}
+.pstep.active{background:rgba(123,57,252,.1);border-color:var(--accent)}
+.arch-card{padding:28px}
+.arch-title{font-family:'JetBrains Mono';font-size:13px;color:var(--mono);margin-bottom:20px}
+.arch-node{padding:12px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;font-size:14px;transition:all .3s;background:var(--surface-2)}
+.arch-node.active{border-color:var(--accent);background:rgba(123,57,252,.12)}
+.arch-node small{color:var(--muted);display:block;font-size:12px;margin-top:2px}
+.arch-node.hl{animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(123,57,252,.3)}50%{box-shadow:0 0 16px 2px rgba(123,57,252,.4)}}
+.gpu-layer{margin-top:20px;padding:20px;border:1px dashed rgba(46,230,168,.4);border-radius:12px}
+.gpu-layer .arch-title{color:var(--data)}
+.gpu-note{margin-top:24px;font-size:13px;color:var(--muted);text-align:center;font-family:'JetBrains Mono'}
+
+/* tech tabs */
+.tabs{display:flex;gap:8px;border-bottom:1px solid var(--border);margin-bottom:32px}
+.tab{padding:12px 24px;cursor:pointer;border:none;background:none;color:var(--muted);font-size:15px;font-weight:500;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent-2);border-bottom-color:var(--accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.metric-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.mcard{padding:20px;text-align:center}
+.mcard .num{font-family:'JetBrains Mono';font-size:28px;color:var(--data)}
+.mcard .label{font-size:13px;color:var(--muted);margin-top:6px}
+.code-block{background:#0d0d15;border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative}
+.code-block pre{padding:24px;overflow-x:auto;font-family:'JetBrains Mono';font-size:13px;line-height:1.7;color:#d4d4e0}
+.code-block .copy-btn{position:absolute;top:12px;right:12px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;transition:all .2s}
+.code-block .copy-btn:hover{color:var(--text);border-color:var(--accent)}
+.code-block .copy-btn.copied{color:var(--data);border-color:var(--data)}
+.constraint-list{margin-top:24px}
+.constraint-list li{list-style:none;padding:10px 0;border-bottom:1px solid var(--border);font-size:15px;display:flex;justify-content:space-between}
+.constraint-list li span{color:var(--muted);font-size:13px}
+.chart-bars{display:flex;flex-direction:column;gap:14px;margin-top:24px}
+.bar-row{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center;font-size:14px}
+.bar-row .bar-label{color:var(--muted)}
+.bar-track{display:flex;gap:4px;align-items:center}
+.bar{height:22px;border-radius:4px;transition:width 1s ease-out}
+.bar.before{background:var(--accent);opacity:.55}
+.bar.after{background:var(--data)}
+.bar-val{font-family:'JetBrains Mono';font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap}
+
+/* proof */
+.proof-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:48px}
+.big-num{font-family:'JetBrains Mono';font-size:72px;color:var(--data);line-height:1}
+.pass-badge{display:inline-block;background:rgba(46,230,168,.12);color:var(--data);border:1px solid rgba(46,230,168,.4);padding:4px 14px;border-radius:999px;font-size:13px;margin:16px 0 24px;font-family:'JetBrains Mono'}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:12px;padding:6px 12px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono'}
+.eval-matrix{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:20px}
+.eval-cell{aspect-ratio:1;background:rgba(46,230,168,.15);border:1px solid rgba(46,230,168,.35);border-radius:6px;transition:all .2s;position:relative;cursor:default}
+.eval-cell:hover{background:rgba(46,230,168,.35);transform:scale(1.05)}
+.eval-cell:hover::after{content:attr(data-tip);position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:var(--surface-2);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:10}
+.matrix-note{font-size:12px;color:var(--muted);margin-top:12px}
+
+/* faq */
+.faq{max-width:800px;margin:48px auto 0}
+.faq-item{border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.faq-q{width:100%;text-align:left;background:none;border:none;color:var(--text);padding:20px 24px;font-size:16px;font-weight:500;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:inherit}
+.faq-q .arrow{transition:transform .3s;color:var(--accent)}
+.faq-item.open .arrow{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.faq-a p{padding:0 24px 20px;color:var(--muted);font-size:15px}
+
+/* cta */
+.cta{text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 60% at 50% 50%, rgba(123,57,252,.18), transparent 70%);z-index:0}
+.cta .container{position:relative;z-index:1}
+.cta h2{font-size:44px;margin-bottom:16px}
+.cta .ctas{display:flex;gap:16px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+
+/* footer */
+footer{border-top:1px solid var(--border);padding:48px 0;font-size:14px;color:var(--muted)}
+.footer-links{display:flex;gap:24px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+.footer-links a:hover{color:var(--text)}
+.disclaimer{text-align:center;font-size:12px;color:var(--muted);opacity:.7}
+
+/* back to top */
+#toTop{position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:20px;cursor:pointer;opacity:0;pointer-events:none;transition:all .3s;z-index:800}
+#toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{background:var(--accent-2)}
+
+/* reveal — hero 内默认可见（避免 IntersectionObserver 首屏误判），其余 section 滚动入场 */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+.hero .reveal{opacity:1;transform:none;transition:none}
+.reveal.in{opacity:1;transform:none}
+
+/* responsive */
+@media(max-width:1024px){
+  nav .container{padding:0 48px}
+  .hero h1{font-size:44px}
+  .hero h1 .serif-i{font-size:48px}
+  .hero-term{width:320px;right:3%}
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  .problem-grid,.what-grid{grid-template-columns:1fr 1fr}
+  .how-wrap{grid-template-columns:1fr}
+  .metric-cards{grid-template-columns:repeat(2,1fr)}
+  .proof-grid{grid-template-columns:1fr}
+  .dash-body{grid-template-columns:1fr}
+  .dash-spark{display:none}
+}
+@media(max-width:640px){
+  nav .container{padding:0 20px}
+  .hero h1{font-size:32px}
+  .hero h1 .serif-i{font-size:36px}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .problem-grid,.what-grid{grid-template-columns:1fr}
+  .nav-links{display:none}
+  .hamburger{display:block}
+  h2{font-size:28px}
+  section{padding:80px 0}
+  .dash-result{flex-direction:column;align-items:flex-start}
+  .dash-flow{display:none}
+  .dash-shell{padding:16px 14px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+}
+/* hero canvas matrix rain */
+#matrix{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:1}
+@keyframes gridMove{from{background-position:0 0,0 0,0 0,0 0}to{background-position:0 0,0 0,96px 96px,96px 96px}}
+.hero-bg{animation:gridMove 2.5s linear infinite}
+@keyframes pulseBtn{0%{box-shadow:0 0 0 0 rgba(123,57,252,.5)}70%{box-shadow:0 0 0 16px rgba(123,57,252,0)}100%{box-shadow:0 0 0 0 rgba(123,57,252,0)}}
+.btn-purple{animation:pulseBtn 2.2s ease-out infinite}
+@keyframes gradFlow{to{background-position:200% center}}
+.serif-i{background:linear-gradient(90deg,#fff,#D8C7FF,#A78BFA,#fff);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gradFlow 5s linear infinite}
+@keyframes floatY{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-18px)}}
+.hero-pill{animation:floatY 7s ease-in-out infinite}
+@keyframes tickScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker{margin-top:18px;background:rgba(123,57,252,.12);border:1px solid rgba(167,139,250,.3);border-radius:10px;overflow:hidden;padding:10px 0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ticker .tr{display:flex;gap:44px;white-space:nowrap;width:max-content;animation:tickScroll 22s linear infinite;font-family:'JetBrains Mono';font-size:12.5px;color:var(--text)}
+.ticker .tr b{color:var(--accent-2);font-weight:500}
+.ticker .tr span.g{color:var(--data)}
+.ticker .tr span.r{color:#ff8a8f}
+/* floating terminal card */
+
+.hero-term .tb{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03)}
+.hero-term .tb .td{width:10px;height:10px;border-radius:50%}
+.hero-term .tb .tt{margin-left:8px;font-family:'JetBrains Mono';font-size:11px;color:var(--muted)}
+.hero-term .body{padding:14px 16px;font-family:'JetBrains Mono';font-size:12.5px;line-height:1.7;color:#D6DCE8;min-height:208px}
+.hero-term .body .c{color:#fff}
+.hero-term .body .c::before{content:'$ ';color:var(--accent)}
+.hero-term .body .ok{color:var(--data)}
+.hero-term .body .pu{color:var(--accent-2)}
+.hero-term .body .dim{color:#6b7686}
+.hero-term .cur{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media(max-width:1100px){.hero-term{width:320px;right:3%}}
+@media(max-width:720px){.hero-term{display:none}}
+</style>
+<script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
+<script>
+(function(){
+  try{
+    var beacon=new BeaconAction({
+      appkey:'0WEB06U85YBSLJNL',
+      versionCode:'1.0.0',
+      channelID:'share',
+      delay:1000,
+      sessionDuration:30*60*1000,
+      isOversea:false,
+      needReportRqdEvent:false
+    });
+    beacon.onDirectUserAction('preview_page_view',{
+      'url':location.href,
+      'referrer':document.referrer,
+      'title':document.title,
+      'sandbox_id':'95173236bfcf4db788ea0f3b1b129c59'
+    });
+  }catch(e){}
+})();
+</script></head>
+<body>
+<div id="progress"></div>
+<nav id="nav">
+  <div class="container">
+    <a href="#" class="logo"><svg class="logo-mark" viewBox="0 0 28 28" width="28" height="28" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7B39FC"/><stop offset="1" stop-color="#A78BFA"/></linearGradient></defs><rect x="1" y="1" width="26" height="26" rx="7" fill="url(#lg)"/><path d="M6 17.5l4.2-6.5 4.3 4.6 5.3-8.6 3.2 5" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>AutoQuant</a>
+    <div class="nav-links" id="navLinks">
+      <a href="#what">What</a><a href="#how">Architecture</a><a href="#tech">Tech</a><a href="#proof">Proof</a><a href="#faq">FAQ</a>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <a href="https://github.com/gxinxing/Radeon-hackathon-2026-07" class="nav-cta" style="padding:9px 18px;font-size:13px">GitHub</a>
+      <a href="#proof" class="nav-purple" style="padding:9px 20px;font-size:13px">Get Started</a>
+      <button class="hamburger" onclick="toggleMenu()">☰</button>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg"><canvas id="matrix"></canvas></div>
+  <div class="hero-pill"></div>
+  <div class="hero-term" aria-hidden="true">
+    <div class="tb"><span class="td" style="background:#ff5f57"></span><span class="td" style="background:#febc2e"></span><span class="td" style="background:#28c840"></span><span class="tt">radeon@amd — autoquant</span></div>
+    <div class="body" id="termBody"></div>
+  </div>
+  <div class="container">
+    <div class="eyebrow reveal">AMD AI DevMaster Hackathon 2026 · Track 2: Agentic AI</div>
+    <h1 class="reveal">Automate the workflow.<span class="serif-i">Focus on the market.</span></h1>
+    <p class="sub reveal">The next-generation quantitative agent platform that turns Chinese natural language into risk-checked trading strategies — trained, served, and backtested entirely on AMD Radeon GPUs.</p>
+    <div class="hero-ctas reveal">
+      <a href="#proof" class="btn-purple">Get Started Free</a>
+      <a href="#how" class="btn-darkp">Watch 2-min Demo ▶</a>
+    </div>
+    <div class="badges reveal">
+      <span class="badge">AMD ROCm 7.2</span><span class="badge">vLLM</span><span class="badge">Qwen2.5-7B</span>
+      <span class="badge">PEFT</span><span class="badge">Dify</span><span class="badge">FastAPI</span>
+      <span class="badge">PyTorch</span><span class="badge">Gradio</span>
+    </div>
+    <div class="glass dash-shell reveal">
+      <div class="dash-top">
+        <div class="dash-dots"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+        <div class="dash-title mono">autoquant · strategy console <em>— NL → DSL → backtest → risk veto</em></div>
+        <div class="dash-env mono"><span class="env-dot"></span>ROCm 7.2 · gfx1100</div>
+      </div>
+      <div class="dash-body">
+        <div class="dash-col">
+          <div class="dash-label">① Natural-language strategy input</div>
+          <div class="dash-input mono">写一个沪深300双均线策略，ema_fast 上穿 ema_slow 时买入，加止损与仓位限制<span class="cur"></span></div>
+          <div class="dash-actions">
+            <button class="dash-run mono">▶ 生成策略</button>
+            <span class="dash-flow mono">RAG → Qwen2.5-7B · LoRA → canonicalizer</span>
+          </div>
+        </div>
+        <div class="dash-col">
+          <div class="dash-label">② Generated DSL · 100% parseable</div>
+          <div class="dash-code mono"><span class="dk">{</span>
+  <span class="dk">"strategy"</span>: {
+    <span class="dk">"name"</span>: <span class="dv">"CN_EMA_20_50"</span>,
+    <span class="dk">"market"</span>: { <span class="dk">"exchange"</span>: <span class="dv">"cn_stock"</span>, <span class="dk">"lot_size"</span>: 100 },
+    <span class="dk">"entry"</span>: { <span class="dk">"long"</span>: <span class="dv">"ema_fast &gt; ema_slow"</span> },
+    <span class="dk">"constraints"</span>: { <span class="dk">"t_plus_one"</span>: true, <span class="dk">"price_limit"</span>: 0.1 },
+    <span class="dk">"risk"</span>: { <span class="dk">"stop_loss"</span>: -0.05, <span class="dk">"max_drawdown"</span>: -0.15 }
+  }
+<span class="dk">}</span></div>
+        </div>
+      </div>
+      <div class="dash-result">
+        <div class="dash-pass">✓ PASS</div>
+        <div class="dash-stats">
+          <div class="ds"><b>backtest</b><span class="green">+3.42%</span></div>
+          <div class="ds"><b>maxDD</b><span>-1.28%</span></div>
+          <div class="ds"><b>sharpe</b><span>1.84</span></div>
+          <div class="ds"><b>lot</b><span>100</span></div>
+          <div class="ds"><b>T+1</b><span class="green">on</span></div>
+        </div>
+        <svg class="dash-spark" viewBox="0 0 240 36" aria-hidden="true"><defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2EE6A8"/><stop offset="1" stop-color="#2EE6A8" stop-opacity="0"/></linearGradient></defs><path d="M0,28 L24,24 L48,26 L72,18 L96,20 L120,12 L144,15 L168,8 L192,10 L216,4 L240,2" fill="none" stroke="#2EE6A8" stroke-width="1.8" stroke-linecap="round"/><path d="M0,28 L240,2 L240,36 L0,36 Z" fill="url(#sparkGrad)" opacity=".25"/></svg>
+      </div>
+    </div>
+    <div class="metrics reveal">
+      <div class="metric"><div class="num" data-count="24" data-suffix="/24">0/24</div><div class="label">Eval pass rate</div></div>
+      <div class="metric"><div class="num" data-count="98.1" data-decimals="1" data-suffix="%">0%</div><div class="label">Token accuracy</div></div>
+      <div class="metric"><div class="num" data-count="285">0</div><div class="label">Tests passing</div></div>
+      <div class="metric"><div class="num" data-count="100" data-suffix="%">0%</div><div class="label">AMD GPU stack</div></div>
+      <div class="metric"><div class="num" data-count="6">0</div><div class="label">Dify nodes</div></div>
+      <div class="metric"><div class="num" data-count="10" data-suffix="min">0min</div><div class="label">LoRA training</div></div>
+    </div>
+    <div class="ticker" aria-hidden="true"><div class="tr" id="tickerRow">
+      <span>510300.SH <b>+0.32%</b></span><span>000300.SH <b>-0.18%</b></span>
+      <span>CN_sma_cross_50_200 <b>PASS</b></span><span>var_95 <b>0.0218</b></span>
+      <span>token_acc <b>98.1%</b></span><span>eval <b>24/24</b></span>
+      <span>tests <b>285</b></span><span>LoRA loss <b>0.2848</b></span>
+      <span>backtest <b>-2.61%</b></span><span>maxDD <b>-3.28%</b></span>
+      <span>ctx <b>32768</b></span><span>Qwen2.5-7B <b>on ROCm</b></span>
+    </div></div>
+  </div>
+</section>
+
+<section id="problem">
+  <div class="container">
+    <div class="eyebrow reveal">Why we built this</div>
+    <h2 class="reveal">Generic agents don't survive China's market</h2>
+    <div class="problem-grid">
+      <div class="card problem-card reveal">
+        <h3>Constraints break "plug-and-play"</h3>
+        <p>T+1 settlement, 100-share lot sizes, and ±10% price limits invalidate strategies built for US or crypto markets. A domestic-market agent must encode these rules natively.</p>
+      </div>
+      <div class="card problem-card reveal">
+        <h3>Risk is an afterthought</h3>
+        <p>Most demo agents generate strategies but never enforce a decision. Ours ends every pipeline with an independent <strong class="green">PASS / REVIEW / REJECT</strong> risk veto.</p>
+      </div>
+      <div class="card problem-card reveal">
+        <h3>NVIDIA lock-in is a choice</h3>
+        <p>The LLM stack shouldn't depend on CUDA. With ROCm, AMD Radeon is a first-class citizen for inference, fine-tuning, and backtesting.</p>
+      </div>
+    </div>
+    <p class="transition-line reveal">What if one agent handled all of it — <em>on AMD hardware?</em></p>
+  </div>
+</section>
+
+<section id="what">
+  <div class="container">
+    <div class="eyebrow reveal">What it does</div>
+    <h2 class="reveal">Full-chain autonomy, six capabilities</h2>
+    <div class="what-grid">
+      <div class="card what-card reveal"><span class="icon">🗣️</span><h3>Natural-Language Strategy Input</h3><p>Describe your idea in Chinese; the agent writes the executable strategy DSL.</p></div>
+      <div class="card what-card reveal"><span class="icon">📚</span><h3>RAG Market-Rule Retrieval</h3><p>Seven domestic-market constraint rules injected at inference time.</p></div>
+      <div class="card what-card reveal"><span class="icon">⚙️</span><h3>DSL Canonicalization</h3><p>Auto-fix lot_size, short, exchange, and risk fields; 100% parseable output.</p></div>
+      <div class="card what-card reveal"><span class="icon">📊</span><h3>Constraint-Aware Backtesting</h3><p>T+1, 100-share lots, no short, ±10% limits, fees &amp; slippage.</p></div>
+      <div class="card what-card reveal"><span class="icon">🛡️</span><h3>Independent Risk Veto</h3><p>A dedicated risk agent decides PASS / REVIEW / REJECT before any execution.</p></div>
+      <div class="card what-card reveal"><span class="icon">🖥️</span><h3>Everything on AMD</h3><p>vLLM serving + LoRA training + backtest on one gfx1100 GPU.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="container">
+    <div class="eyebrow reveal">Architecture</div>
+    <h2 class="reveal">One pipeline, eight auditable steps</h2>
+    <div class="how-wrap">
+      <div class="pipeline reveal" id="pipeline">
+        <div class="pstep active" data-step="0"><span class="n">01</span>User Natural Language</div>
+        <div class="pstep" data-step="1"><span class="n">02</span>RAG Retrieval</div>
+        <div class="pstep" data-step="2"><span class="n">03</span>LLM Generation</div>
+        <div class="pstep" data-step="3"><span class="n">04</span>DSL Canonicalization</div>
+        <div class="pstep" data-step="4"><span class="n">05</span>Validation</div>
+        <div class="pstep" data-step="5"><span class="n">06</span>Simulated Backtest</div>
+        <div class="pstep" data-step="6"><span class="n">07</span>Risk Report</div>
+        <div class="pstep" data-step="7"><span class="n">08</span>PASS / REVIEW / REJECT</div>
+      </div>
+      <div class="arch-card card reveal">
+        <div class="arch-title">Dify Workflow · 6 nodes</div>
+        <div class="arch-node" data-anode="0">Input<small>Chinese NL query</small></div>
+        <div class="arch-node" data-anode="1">RAG<small>7 CN-market rules</small></div>
+        <div class="arch-node" data-anode="2">LLM<small>Qwen2.5-7B · LoRA on ROCm</small></div>
+        <div class="arch-node" data-anode="3">Code<small>DSL canonicalizer</small></div>
+        <div class="arch-node" data-anode="4">Backtest<small>constraint-aware sim</small></div>
+        <div class="arch-node" data-anode="5">Answer<small>PASS / REVIEW / REJECT</small></div>
+        <div class="gpu-layer">
+          <div class="arch-title">AMD ROCm GPU Layer</div>
+          <div class="arch-node">vLLM · port 8000<small>Qwen2.5-7B · ~8.5 s/req · ~16 GB VRAM</small></div>
+          <div class="arch-node">LoRA Training<small>400 pairs · r=64 · ~10 min</small></div>
+          <div class="arch-node">FastAPI · port 8080<small>backtest &amp; risk endpoints</small></div>
+        </div>
+        <p class="gpu-note">Inference, fine-tuning, RAG, and backtesting all execute on AMD Radeon gfx1100 — no NVIDIA CUDA.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tech">
+  <div class="container">
+    <div class="eyebrow reveal">Tech deep dive</div>
+    <h2 class="reveal">Measured, not claimed</h2>
+    <div class="tabs reveal" role="tablist">
+      <button class="tab active" role="tab" data-tab="a">LoRA Fine-Tuning</button>
+      <button class="tab" role="tab" data-tab="b">DSL &amp; Constraints</button>
+      <button class="tab" role="tab" data-tab="c">Evaluation</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-a">
+      <div class="metric-cards">
+        <div class="card mcard"><div class="num">400</div><div class="label">NL→DSL pairs</div></div>
+        <div class="card mcard"><div class="num">0.2848</div><div class="label">Final loss</div></div>
+        <div class="card mcard"><div class="num green">98.1%</div><div class="label">Token accuracy</div></div>
+        <div class="card mcard"><div class="num">16.2 GB</div><div class="label">Peak VRAM</div></div>
+      </div>
+      <div class="card" style="padding:28px">
+        <div class="arch-title">Training loss · 39 steps · ~10 min on gfx1100</div>
+        <svg viewBox="0 0 600 200" width="100%" height="200">
+          <defs><linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7B39FC" stop-opacity=".35"/><stop offset="100%" stop-color="#7B39FC" stop-opacity="0"/></linearGradient></defs>
+          <path id="lossPath" d="M20,30 L40,48 L60,62 L80,74 L100,84 L120,95 L140,104 L160,112 L180,119 L200,126 L220,132 L240,137 L260,142 L280,146 L300,150 L320,154 L340,157 L360,160 L380,163 L400,165 L420,167 L440,169 L460,171 L480,173 L500,175 L520,177 L540,179 L560,181 L580,182" fill="none" stroke="#7B39FC" stroke-width="2" stroke-dasharray="600" stroke-dashoffset="600"/>
+          <circle id="lossEnd" cx="580" cy="182" r="4" fill="#2EE6A8"/>
+          <text x="580" y="172" fill="#2EE6A8" font-size="11" font-family="JetBrains Mono" text-anchor="end">0.2848</text>
+        </svg>
+        <p style="font-size:13px;color:var(--muted);margin-top:8px">Qwen2.5-7B · rank 64 / alpha 128 · 3 epochs · FP16 LoRA</p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-b">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>{
+  "strategy": {
+    "name": "CN_EMA_20_50",
+    "market": {
+      "exchange": "cn_stock",
+      "instrument": "510300.SH",
+      "timeframe": "1d"
+    },
+    "indicators": [
+      {"name": "ema_fast", "type": "EMA", "params": {"period": 20}},
+      {"name": "ema_slow", "type": "EMA", "params": {"period": 50}}
+    ],
+    "entry": {"long": "ema_fast > ema_slow", "short": null},
+    "exit": {"long": "ema_fast < ema_slow", "short": null},
+    "constraints": {
+      "t_plus_one": true,
+      "price_limit": 0.1,
+      "allow_short": false,
+      "lot_size": 100
+    },
+    "risk": {
+      "stop_loss": -0.05,
+      "max_position_pct": 0.3,
+      "max_drawdown": -0.15
+    }
+  }
+}</pre>
+        </div>
+        <div>
+          <div class="arch-title">China market constraints, built in</div>
+          <ul class="constraint-list">
+            <li>T+1 settlement <span>no same-day sell</span></li>
+            <li>100-share lot size <span>orders round to lots</span></li>
+            <li>No naked shorting <span>entry.short = null</span></li>
+            <li>±10% price limits <span>price_limit = 0.1</span></li>
+            <li>Commission &amp; stamp duty <span>included in backtest</span></li>
+            <li>Slippage <span>modeled per trade</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-c">
+      <div class="arch-title">Canonicalizer impact · per-metric pass rate, before → after</div>
+      <div class="chart-bars">
+        <div class="bar-row"><div class="bar-label">JSON parseable</div><div class="bar-track"><div class="bar before" data-w="75"></div><div class="bar after" data-w="100"></div><span class="bar-val">75% → 100%</span></div></div>
+        <div class="bar-row"><div class="bar-label">Instrument match</div><div class="bar-track"><div class="bar before" data-w="70.8"></div><div class="bar after" data-w="100"></div><span class="bar-val">70.8% → 100%</span></div></div>
+        <div class="bar-row"><div class="bar-label">Short disabled</div><div class="bar-track"><div class="bar before" data-w="70.8"></div><div class="bar after" data-w="100"></div><span class="bar-val">70.8% → 100%</span></div></div>
+        <div class="bar-row"><div class="bar-label">Constraints valid</div><div class="bar-track"><div class="bar before" data-w="45.8"></div><div class="bar after" data-w="100"></div><span class="bar-val">45.8% → 100%</span></div></div>
+      </div>
+      <p style="font-size:14px;color:var(--muted);margin-top:24px">Overall evaluation pass rate improved from <strong class="red">45.83%</strong> to <strong class="green">100%</strong> — <span class="mono">24/24</span> across 4 ETFs × 6 strategy templates, after the DSL canonicalizer was introduced.</p>
+    </div>
+  </div>
+</section>
+
+<section id="proof">
+  <div class="container">
+    <div class="eyebrow reveal">Proof</div>
+    <h2 class="reveal">The system is verified, not aspirational</h2>
+    <div class="proof-grid">
+      <div class="card" style="padding:32px">
+        <div class="big-num" data-count="285">0</div>
+        <div class="pass-badge">✓ ALL PASS</div>
+        <div class="chips">
+          <span class="chip">Agent core</span><span class="chip">DSL validator</span><span class="chip">Transpiler</span>
+          <span class="chip">Multi-agent</span><span class="chip">RAG retrieval</span><span class="chip">E2E</span>
+          <span class="chip">Compute engine</span><span class="chip">Memory consistency</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin-top:16px">285 unit &amp; integration tests passing · 2 async integration checks documented separately</p>
+      </div>
+      <div class="card" style="padding:32px">
+        <div class="arch-title">Evaluation matrix · 4 ETFs × 6 templates = 24/24</div>
+        <div class="eval-matrix" id="evalMatrix"></div>
+        <p class="matrix-note">All green — hover a cell for the ETF × template pair.</p>
+      </div>
+    </div>
+    <div class="card reveal" style="margin-top:24px;padding:20px;text-align:center">
+      <div class="arch-title">Live demo · Open WebUI chat</div>
+      <p style="color:var(--muted);font-size:15px;margin:12px 0 20px">Try the running agent: natural-language strategy → DSL → backtest → risk decision. Register and chat in the hosted Open WebUI (the fine-tuned model runs on the AMD ROCm box — see the demo video).</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="https://bones-fans-imposed-rio.trycloudflare.com" target="_blank" class="btn btn-primary">Open Live Demo</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="container">
+    <div class="eyebrow reveal">FAQ</div>
+    <h2 class="reveal">Questions judges might ask</h2>
+    <div class="faq">
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">Why AMD instead of CUDA? <span class="arrow">+</span></button>
+        <div class="faq-a"><p>AMD ROCm is a first-class target here — vLLM, PEFT, Dify, and the entire pipeline run on gfx1100. Zero CUDA dependency by design, with training and inference both measured on the same GPU.</p></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">Is the backtest real market data? <span class="arrow">+</span></button>
+        <div class="faq-a"><p>Deterministic synthetic OHLCV provides reproducible system-closure demos; a paper-trading API is available for execution. Sources and timestamps are disclosed in every response.</p></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">What does the risk agent actually do? <span class="arrow">+</span></button>
+        <div class="faq-a"><p>An independent veto: REJECT blocks execution at the boundary. It validates instrument legality, hard constraints (T+1, no short, lot size), and risk parameters before any decision is emitted.</p></div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">How reproducible is the training? <span class="arrow">+</span></button>
+        <div class="faq-a"><p>Full pipeline is in the repo: train_qlora.py → merge → serve. The 400-pair dataset and all configs are version-controlled.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <h2 class="reveal">A full-chain trading agent.<br>One AMD GPU. <span class="red">Zero CUDA.</span></h2>
+    <p class="sub reveal" style="margin:0 auto">From Chinese words to a risk-vetoed, backtested strategy — entirely on AMD Radeon.</p>
+    <div class="ctas reveal">
+      <a href="https://bones-fans-imposed-rio.trycloudflare.com" target="_blank" class="btn btn-primary">Try the Live Demo</a>
+      <a href="https://github.com/gxinxing/Radeon-hackathon-2026-07/blob/main/docs/technical_report.md" class="btn btn-secondary">Read the Technical Report</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/gxinxing/Radeon-hackathon-2026-07">GitHub</a>
+      <a href="https://github.com/gxinxing/Radeon-hackathon-2026-07/blob/main/docs/technical_report.md">Technical Report</a>
+      <a href="https://github.com/gxinxing/Radeon-hackathon-2026-07/blob/main/docs/track2_demo_script_cn.md">Demo Script</a>
+      <span>AMD AI DevMaster Hackathon 2026</span>
+    </div>
+    <p class="disclaimer">This project is a hackathon demonstration. Output is not investment advice.</p>
+  </div>
+</footer>
+
+<button id="toTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+// scroll progress
+const progress = document.getElementById('progress');
+const nav = document.getElementById('nav');
+const toTop = document.getElementById('toTop');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  progress.style.width = pct + '%';
+  nav.classList.toggle('scrolled', h.scrollTop > 60);
+  toTop.classList.toggle('show', h.scrollTop > 800);
+});
+
+// reveal on scroll
+const io = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, {threshold: .1});
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+// count-up
+const cio = new IntersectionObserver((es) => {
+  es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    const target = parseFloat(el.dataset.count);
+    const decimals = parseInt(el.dataset.decimals || 0);
+    const suffix = el.dataset.suffix || '';
+    const dur = 1200, t0 = performance.now();
+    const tick = (t) => {
+      const p = Math.min((t - t0) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = (target * eased).toFixed(decimals) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    cio.unobserve(el);
+  });
+}, {threshold: .5});
+document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
+
+// pipeline → arch linkage
+const steps = document.querySelectorAll('.pstep');
+const anodes = document.querySelectorAll('.arch-node[data-anode]');
+const map = [0,1,2,3,4,5,6,5];
+steps.forEach(s => s.addEventListener('click', () => {
+  steps.forEach(x => x.classList.remove('active'));
+  s.classList.add('active');
+  anodes.forEach(a => a.classList.remove('active','hl'));
+  const idx = parseInt(s.dataset.step);
+  const target = document.querySelector(`.arch-node[data-anode="${map[idx]}"]`);
+  if (target) { target.classList.add('active','hl'); setTimeout(() => target.classList.remove('hl'), 1200); }
+}));
+
+// tabs
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+  // trigger bar animation when tab C shows
+  if (t.dataset.tab === 'c') animateBars();
+}));
+
+// bars animate
+function animateBars() {
+  document.querySelectorAll('.bar').forEach(b => b.style.width = '0px');
+  setTimeout(() => {
+    document.querySelectorAll('.bar').forEach(b => {
+      b.style.width = b.dataset.w + '%';
+    });
+  }, 50);
+}
+
+// copy
+function copyCode(btn) {
+  const code = btn.nextElementSibling.textContent.trim();
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '✓ Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// faq
+function toggleFaq(btn) {
+  const item = btn.parentElement;
+  const answer = item.querySelector('.faq-a');
+  const open = item.classList.toggle('open');
+  answer.style.maxHeight = open ? answer.scrollHeight + 'px' : '0px';
+  document.querySelectorAll('.faq-item').forEach(x => {
+    if (x !== item && x.classList.contains('open')) {
+      x.classList.remove('open');
+      x.querySelector('.faq-a').style.maxHeight = '0px';
+    }
+  });
+}
+
+// eval matrix 24 cells
+(function(){
+  const etfs = ['510300.SH','510050.SH','510500.SH','159915.SZ'];
+  const tpls = ['SMA','EMA','MACD','RSI','BOLL','Momentum'];
+  const m = document.getElementById('evalMatrix');
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 6; j++) {
+      const c = document.createElement('div');
+      c.className = 'eval-cell';
+      c.dataset.tip = etfs[i] + ' × ' + tpls[j];
+      m.appendChild(c);
+    }
+  }
+})();
+
+// loss curve draw-in
+const lio = new IntersectionObserver((es) => {
+  es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const path = document.getElementById('lossPath');
+    const end = document.getElementById('lossEnd');
+    path.style.transition = 'stroke-dashoffset 2s ease-out';
+    path.style.strokeDashoffset = '0';
+    end.style.opacity = '1';
+    lio.unobserve(e.target);
+  });
+}, {threshold: .3});
+const lossSvg = document.querySelector('#tech svg');
+if (lossSvg) lio.observe(lossSvg);
+document.getElementById('lossEnd').style.opacity = '0';
+
+// mobile menu
+function toggleMenu() {
+  const l = document.getElementById('navLinks');
+  l.style.display = l.style.display === 'flex' ? 'none' : 'flex';
+  l.style.position = 'absolute';
+  l.style.top = '60px';
+  l.style.left = '0';
+  l.style.right = '0';
+  l.style.flexDirection = 'column';
+  l.style.background = 'var(--surface)';
+  l.style.padding = '20px 24px';
+  l.style.borderBottom = '1px solid var(--border)';
+}
+
+/* ===== matrix rain (purple, quant-flavored) ===== */
+(function(){
+  const c = document.getElementById('matrix');
+  if (!c) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ctx = c.getContext('2d');
+  if (reduced) { drawStatic(ctx); return; }
+  function drawStatic(cx){
+    cx.fillStyle = 'rgba(0,0,0,0.5)'; cx.fillRect(0, 0, c.width, c.height);
+    cx.font = '15px "JetBrains Mono", monospace';
+    for (let i = 0; i < 220; i++){
+      cx.fillStyle = Math.random() > 0.5 ? '#7B39FC' : '#A78BFA'; cx.globalAlpha = 0.35;
+      cx.fillText(chars[Math.floor(Math.random()*chars.length)], Math.random()*c.width, Math.random()*c.height);
+    }
+    cx.globalAlpha = 1;
+  }
+  const chars = 'vLLM DSL QWEN ROCm PyTorch sma ema rsi var cvar 沪深300 因子 策略 量化 0 1 9 8 $ # + = / < >';
+  const cols = [], drops = [];
+  let W, H, fs = 18;
+  function resize(){
+    W = c.width = c.offsetWidth; H = c.height = c.offsetHeight;
+    const n = Math.max(24, Math.floor(W / (fs * 0.9)));
+    cols.length = 0; drops.length = 0;
+    for (let i = 0; i < n; i++){ cols.push(Math.random() * 1.6); drops.push(Math.floor(Math.random() * -60)); }
+  }
+  resize(); window.addEventListener('resize', resize);
+  if (reduced) return;
+  function draw(){
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = fs + 'px "JetBrains Mono", monospace';
+    for (let i = 0; i < drops.length; i++){
+      const ch = chars[Math.floor(Math.random() * chars.length)];
+      const x = i * fs * 0.92;
+      const y = drops[i] * fs;
+      const head = (y < fs * 4 && y >= 0);
+      ctx.fillStyle = head ? '#F1E8FF' : (Math.random() > 0.45 ? '#7B39FC' : '#A78BFA');
+      ctx.globalAlpha = head ? 1 : (0.5 + cols[i] * 0.35);
+      ctx.fillText(ch, x, y);
+      ctx.globalAlpha = 1;
+      if (y > H && Math.random() > 0.96) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  setInterval(draw, 42);
+})();
+
+/* ===== ticker seamless (duplicate content) ===== */
+(function(){
+  const tr = document.getElementById('tickerRow');
+  if (tr && !tr.dataset.dup){ tr.dataset.dup = '1'; tr.innerHTML += tr.innerHTML; }
+})();
+
+/* ===== floating terminal loop ===== */
+(function(){
+  const body = document.getElementById('termBody');
+  if (!body) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const full = segs0();
+    body.innerHTML = full;
+    return;
+  }
+  function segs0(){
+    const s = [
+      ['rocminfo | grep -E "Name|Marketing"', 'c'],
+      ['GPU[0]: gfx1100 · AMD Radeon Graphics', 'ok'],
+      ['ROCm: 7.2.1 · 48 GB VRAM', 'ok'],
+      ['', ''],
+      ['curl :8000/v1/models', 'c'],
+      ['id: models/qwen-trader-merged', 'pu'],
+      ['Qwen2.5-7B + CN LoRA · ctx 32768', 'dim'],
+    ];
+    return s.map(r => r[0] === '' ? '<br>' : '<span class="' + r[1] + '">' + r[0] + '</span><br>').join('');
+  }
+  const segs = [
+    [
+      {t:'rocminfo | grep -E "Name|Marketing"', c:'c'},
+      {t:'GPU[0]: gfx1100 · AMD Radeon Graphics', c:'ok'},
+      {t:'ROCm: 7.2.1 · 48 GB VRAM', c:'ok'},
+      {t:'', c:''},
+      {t:'curl :8000/v1/models', c:'c'},
+      {t:'id: models/qwen-trader-merged', c:'pu'},
+      {t:'Qwen2.5-7B + CN LoRA · ctx 32768', c:'dim'},
+    ],
+    [
+      {t:'写一个沪深300双均线策略', c:'c'},
+      {t:'strategy: CN_sma_cross_50_200', c:'ok'},
+      {t:'instrument: 000300.SH · PASS', c:'ok'},
+      {t:'backtest: -2.61% · maxDD -3.28%', c:'dim'},
+      {t:'', c:''},
+      {t:'计算组合VaR', c:'c'},
+      {t:'var_95: 0.0218 · cvar_95: 0.0236', c:'pu'},
+    ],
+    [
+      {t:'/opt/venv/bin/python -m vllm', c:'c'},
+      {t:'Engine 000: 24/24 eval passed', c:'ok'},
+      {t:'token_accuracy: 98.1%', c:'ok'},
+      {t:'GPU KV cache: 101,440 tokens', c:'dim'},
+      {t:'', c:''},
+      {t:'tests: 285 passed · 2 async checks', c:'pu'},
+    ],
+  ];
+  let si = 0, li = 0, ci = 0;
+  const cur = document.createElement('span'); cur.className = 'cur';
+  function lineEnd(el){ el.appendChild(document.createElement('br')); }
+  function step(){
+    if (si >= segs.length) si = 0;
+    const seg = segs[si];
+    if (li >= seg.length){
+      body.innerHTML = '';
+      si++; li = 0; ci = 0;
+      setTimeout(step, 2400);
+      return;
+    }
+    const L = seg[li];
+    if (L.t === ''){
+      lineEnd(body); li++; setTimeout(step, 90); return;
+    }
+    if (ci === 0){
+      const d = document.createElement('span');
+      d.className = L.c || 'out';
+      body.appendChild(d);
+    }
+    const el = body.lastElementChild;
+    el.textContent = L.t.slice(0, ci + 1);
+    ci++;
+    if (ci >= L.t.length){ ci = 0; li++; setTimeout(step, 140); }
+    else setTimeout(step, 22);
+  }
+  step();
+})();
+
+</script>
+</body>
+</html>

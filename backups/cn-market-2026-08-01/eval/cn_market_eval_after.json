@@ -1,0 +1,574 @@
+{
+  "summary": {
+    "model": "models/qwen-trader-merged",
+    "total": 24,
+    "passed": 11,
+    "pass_rate": 0.4583,
+    "avg_latency_ms": 10243.08,
+    "p95_latency_ms": 10043.6,
+    "check_rates": {
+      "json_valid": 0.75,
+      "no_forbidden_terms": 1.0,
+      "instrument_match": 0.7083,
+      "timeframe_match": 0.7083,
+      "domestic_exchange": 0.7083,
+      "short_disabled": 0.7083,
+      "constraints_valid": 0.4583,
+      "numeric_types_valid": 0.7083
+    }
+  },
+  "results": [
+    {
+      "id": 1,
+      "prompt": "请为沪深300ETF（510300.SH）设计日线EMA20/EMA50趋势策略，最大仓位30%，止损5%",
+      "instrument": "510300.SH",
+      "timeframe": "1d",
+      "periods": [
+        20,
+        50
+      ],
+      "latency_ms": 8439.59,
+      "raw_output": "strategy: {\n  name: 'CN_ema_trend_20_50_0189',\n  market: {\n    exchange: 'cn_stock',\n    instrument: '510300.SH',\n    timeframe: '1d'\n  },\n  indicators: [\n    { name: 'ema_fast', type: 'EMA', params: { period: 20, field: 'close' } },\n    { name: 'ema_slow', type: 'EMA', params: { period: 50, field: 'close' } }\n  ],\n  entry: { long: 'ema_fast > ema_slow', short: null },\n  exit: { long: 'ema_fast < ema_slow', short: null },\n  risk: { stop_loss: -0.05, max_position_pct: 0.3, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 2,
+      "prompt": "生成沪深300ETF（510300.SH）的30分钟RSI均值回归策略，RSI低于30入场、高于70退出，禁止做空",
+      "instrument": "510300.SH",
+      "timeframe": "30m",
+      "periods": [
+        14
+      ],
+      "latency_ms": 10043.6,
+      "raw_output": "strategy: {\n  \"name\": \"CN_rsi_mean_reversion_0389\",\n  \"market\": {\n    \"exchange\": \"cn_stock\",\n    \"instrument\": \"510300.SH\",\n    \"timeframe\": \"30m\"\n  },\n  \"indicators\": [\n    {\n      \"name\": \"rsi\",\n      \"type\": \"RSI\",\n      \"params\": {\n        \"period\": 14\n      }\n    },\n    {\n      \"name\": \"rsi_ma\",\n      \"type\": \"SMA\",\n      \"params\": {\n        \"period\": 20,\n        \"field\": \"rsi\"\n      }\n    }\n  ],\n  \"entry\": {\n    \"long\": \"rsi < rsi_ma - 10\",\n    \"short\": null\n  },\n  \"exit\": {\n    \"long\": \"rsi > rsi_ma + 10\",\n    \"short\": null\n  },\n  \"risk\": {\n    \"stop_loss\": -0.03,\n    \"max_position_pct\": 0.15,\n    \"max_drawdown\": 0.15\n  },\n  \"constraints\": {\n    \"t_plus_one\": true,\n    \"price_limit\": 0.1,\n    \"allow_short\": false,\n    \"lot_size\": 10000\n  }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": false,
+        "numeric_types_valid": true
+      },
+      "passed": false
+    },
+    {
+      "id": 3,
+      "prompt": "为沪深300ETF（510300.SH）生成日线布林带反转策略，周期20，标准差2，单次仓位20%",
+      "instrument": "510300.SH",
+      "timeframe": "1d",
+      "periods": [
+        20
+      ],
+      "latency_ms": 6501.59,
+      "raw_output": "strategy: {\n  name: 'BollingerBandsReversal_20_2',\n  market: {\n    exchange: 'cn_stock',\n    instrument: '510300.SH',\n    timeframe: '1d'\n  },\n  indicators: [\n    { name: 'bb', type: 'BollingerBands', params: { period: 20, std_dev: 2 } }\n  ],\n  entry: { long: 'close < bb_lower', short: null },\n  exit: { long: 'close > bb_upper', short: null },\n  risk: { stop_loss: -0.03, max_position_pct: 0.2, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 4,
+      "prompt": "设计沪深300ETF（510300.SH）的日线MACD趋势策略，参数12、26、9，回撤超过15%停止模拟",
+      "instrument": "510300.SH",
+      "timeframe": "1d",
+      "periods": [
+        12,
+        26,
+        9
+      ],
+      "latency_ms": 8937.57,
+      "raw_output": "strategy\": {\n    \"name\": \"CN_macd_trend_12_26_0874\",\n    \"market\": {\n      \"exchange\": \"cn_stock\",\n      \"instrument\": \"510300.SH\",\n      \"timeframe\": \"1d\"\n    },\n    \"indicators\": [\n      {\"name\": \"macd\", \"type\": \"MACD\", \"params\": {\"fast_period\": 12, \"slow_period\": 26, \"signal_period\": 9}},\n      {\"name\": \"ema_fast\", \"type\": \"EMA\", \"params\": {\"period\": 20, \"field\": \"close\"}}\n    ],\n    \"entry\": {\"long\": \"macd > 0 AND close < ema_fast\", \"short\": null},\n    \"exit\": {\"long\": \"macd < 0\", \"short\": null},\n    \"risk\": {\"stop_loss\": -0.05, \"max_position_pct\": 0.3, \"max_drawdown\": 0.15},\n    \"constraints\": {\"t_plus_one\": true, \"price_limit\": 0.1, \"allow_short\": false, \"lot_size\": 100}\n  }\n}\n",
+      "checks": {
+        "json_valid": false,
+        "no_forbidden_terms": true,
+        "instrument_match": false,
+        "timeframe_match": false,
+        "domestic_exchange": false,
+        "short_disabled": false,
+        "constraints_valid": false,
+        "numeric_types_valid": false
+      },
+      "passed": false
+    },
+    {
+      "id": 5,
+      "prompt": "生成沪深300ETF（510300.SH）的30分钟EMA9/EMA21策略，必须遵守T+1、100股整数手和10%涨跌停",
+      "instrument": "510300.SH",
+      "timeframe": "30m",
+      "periods": [
+        9,
+        21
+      ],
+      "latency_ms": 8042.99,
+      "raw_output": "strategy: {\n  name: 'ema_cross_9_21_0268',\n  market: {\n    exchange: 'cn_stock',\n    instrument: '510300.SH',\n    timeframe: '30m'\n  },\n  indicators: [\n    { name: 'ema_fast', type: 'EMA', params: { period: 9, field: 'close' } },\n    { name: 'ema_slow', type: 'EMA', params: { period: 21, field: 'close' } }\n  ],\n  entry: { long: 'ema_fast > ema_slow', short: null },\n  exit: { long: 'ema_fast < ema_slow', short: null },\n  risk: { stop_loss: -0.03, max_position_pct: 0.15, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 6,
+      "prompt": "为沪深300ETF（510300.SH）设计ADX过滤的日线EMA策略，仅ADX大于25时入场，不能融券做空",
+      "instrument": "510300.SH",
+      "timeframe": "1d",
+      "periods": [
+        14,
+        20,
+        50
+      ],
+      "latency_ms": 8788.29,
+      "raw_output": "strategy: {\n  name: 'CN_ema_adx_filter_20_60_25',\n  market: {\n    exchange: 'cn_stock',\n    instrument: '510300.SH',\n    timeframe: '1d'\n  },\n  indicators: [\n    { name: 'ema_fast', type: 'EMA', params: { period: 20, field: 'close' } },\n    { name: 'ema_slow', type: 'EMA', params: { period: 60, field: 'close' } },\n    { name: 'adx', type: 'ADX', params: { period: 14 } }\n  ],\n  entry: { long: 'ema_fast > ema_slow AND adx > 25', short: null },\n  exit: { long: 'ema_fast < ema_slow', short: null },\n  risk: { stop_loss: -0.05, max_position_pct: 0.3, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 7,
+      "prompt": "请为上证50ETF（510050.SH）设计日线EMA20/EMA50趋势策略，最大仓位30%，止损5%",
+      "instrument": "510050.SH",
+      "timeframe": "1d",
+      "periods": [
+        20,
+        50
+      ],
+      "latency_ms": 7647.65,
+      "raw_output": "strategy: {\n  name: 'CN_ema_trend_20_50_0189',\n  market: {\n    exchange: 'cn_stock',\n    instrument: '510050.SH',\n    timeframe: '1d'\n  },\n  indicators: [\n    { name: 'ema_fast', type: 'EMA', params: { period: 20, field: 'close' } },\n    { name: 'ema_slow', type: 'EMA', params: { period: 50, field: 'close' } }\n  ],\n  entry: { long: 'ema_fast > ema_slow', short: null },\n  exit: { long: 'ema_fast < ema_slow', short: null },\n  risk: { stop_loss: -0.05, max_position_pct: 0.3, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 8,
+      "prompt": "生成上证50ETF（510050.SH）的30分钟RSI均值回归策略，RSI低于30入场、高于70退出，禁止做空",
+      "instrument": "510050.SH",
+      "timeframe": "30m",
+      "periods": [
+        14
+      ],
+      "latency_ms": 8494.04,
+      "raw_output": "strategy\": {\n    \"name\": \"CN_mean_reversion_rsi_30_70_0489\",\n    \"market\": {\n      \"exchange\": \"cn_stock\",\n      \"instrument\": \"510050.SH\",\n      \"timeframe\": \"30m\"\n    },\n    \"indicators\": [\n      {\"name\": \"rsi\", \"type\": \"RSI\", \"params\": {\"period\": 14}},\n      {\"name\": \"rsi_ma\", \"type\": \"SMA\", \"params\": {\"period\": 20, \"field\": \"rsi\"}}\n    ],\n    \"entry\": {\"long\": \"rsi < 30\", \"short\": null},\n    \"exit\": {\"long\": \"rsi > 70\", \"short\": null},\n    \"risk\": {\"stop_loss\": -0.03, \"max_position_pct\": 0.15, \"max_drawdown\": 0.15},\n    \"constraints\": {\"t_plus_one\": true, \"price_limit\": 0.1, \"allow_short\": false, \"lot_size\": 1000}\n  }\n}\n",
+      "checks": {
+        "json_valid": false,
+        "no_forbidden_terms": true,
+        "instrument_match": false,
+        "timeframe_match": false,
+        "domestic_exchange": false,
+        "short_disabled": false,
+        "constraints_valid": false,
+        "numeric_types_valid": false
+      },
+      "passed": false
+    },
+    {
+      "id": 9,
+      "prompt": "为上证50ETF（510050.SH）生成日线布林带反转策略，周期20，标准差2，单次仓位20%",
+      "instrument": "510050.SH",
+      "timeframe": "1d",
+      "periods": [
+        20
+      ],
+      "latency_ms": 9361.6,
+      "raw_output": "strategy: {\n  \"name\": \"BollingerBandsReversal_20_200\",\n  \"market\": {\n    \"exchange\": \"cn_stock\",\n    \"instrument\": \"510050.SH\",\n    \"timeframe\": \"1d\"\n  },\n  \"indicators\": [\n    {\n      \"name\": \"bb_bbm\",\n      \"type\": \"BollingerBands\",\n      \"params\": {\n        \"period\": 20,\n        \"std_dev\": 2.0\n      }\n    }\n  ],\n  \"entry\": {\n    \"long\": \"close < bb_bbm - 2.0 * bb_std\",\n    \"short\": null\n  },\n  \"exit\": {\n    \"long\": \"close > bb_bbm + 2.0 * bb_std\",\n    \"short\": null\n  },\n  \"risk\": {\n    \"stop_loss\": -0.03,\n    \"max_position_pct\": 0.2,\n    \"max_drawdown\": 0.15\n  },\n  \"constraints\": {\n    \"t_plus_one\": true,\n    \"price_limit\": 0.1,\n    \"allow_short\": false,\n    \"lot_size\": 10000\n  }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": false,
+        "numeric_types_valid": true
+      },
+      "passed": false
+    },
+    {
+      "id": 10,
+      "prompt": "设计上证50ETF（510050.SH）的日线MACD趋势策略，参数12、26、9，回撤超过15%停止模拟",
+      "instrument": "510050.SH",
+      "timeframe": "1d",
+      "periods": [
+        12,
+        26,
+        9
+      ],
+      "latency_ms": 9492.89,
+      "raw_output": "strategy: {\n  \"name\": \"CN_macd_trend_12_26_0487\",\n  \"market\": {\n    \"exchange\": \"cn_stock\",\n    \"instrument\": \"510050.SH\",\n    \"timeframe\": \"1d\"\n  },\n  \"indicators\": [\n    {\n      \"name\": \"macd\",\n      \"type\": \"MACD\",\n      \"params\": {\n        \"fast_period\": 12,\n        \"slow_period\": 26,\n        \"signal_period\": 9\n      }\n    }\n  ],\n  \"entry\": {\n    \"long\": \"macd > 0\",\n    \"short\": null\n  },\n  \"exit\": {\n    \"long\": \"macd < 0\",\n    \"short\": null\n  },\n  \"risk\": {\n    \"stop_loss\": -0.05,\n    \"max_position_pct\": 0.3,\n    \"max_drawdown\": 0.15\n  },\n  \"constraints\": {\n    \"t_plus_one\": true,\n    \"price_limit\": 0.1,\n    \"allow_short\": false,\n    \"lot_size\": 1000\n  }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": false,
+        "numeric_types_valid": true
+      },
+      "passed": false
+    },
+    {
+      "id": 11,
+      "prompt": "生成上证50ETF（510050.SH）的30分钟EMA9/EMA21策略，必须遵守T+1、100股整数手和10%涨跌停",
+      "instrument": "510050.SH",
+      "timeframe": "30m",
+      "periods": [
+        9,
+        21
+      ],
+      "latency_ms": 8288.59,
+      "raw_output": "strategy\": {\n    \"name\": \"ema_cross_9_21_0284\",\n    \"market\": {\n      \"exchange\": \"cn_stock\",\n      \"instrument\": \"510050.SH\",\n      \"timeframe\": \"30m\"\n    },\n    \"indicators\": [\n      {\"name\": \"ema_fast\", \"type\": \"EMA\", \"params\": {\"period\": 9, \"field\": \"close\"}},\n      {\"name\": \"ema_slow\", \"type\": \"EMA\", \"params\": {\"period\": 21, \"field\": \"close\"}}\n    ],\n    \"entry\": {\"long\": \"ema_fast > ema_slow\", \"short\": null},\n    \"exit\": {\"long\": \"ema_fast < ema_slow\", \"short\": null},\n    \"risk\": {\"stop_loss\": -0.03, \"max_position_pct\": 0.15, \"max_drawdown\": 0.15},\n    \"constraints\": {\"t_plus_one\": true, \"price_limit\": 0.1, \"allow_short\": false, \"lot_size\": 100}\n  }\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": false,
+        "timeframe_match": false,
+        "domestic_exchange": false,
+        "short_disabled": false,
+        "constraints_valid": false,
+        "numeric_types_valid": false
+      },
+      "passed": false
+    },
+    {
+      "id": 12,
+      "prompt": "为上证50ETF（510050.SH）设计ADX过滤的日线EMA策略，仅ADX大于25时入场，不能融券做空",
+      "instrument": "510050.SH",
+      "timeframe": "1d",
+      "periods": [
+        14,
+        20,
+        50
+      ],
+      "latency_ms": 31028.59,
+      "raw_output": "strategy\": {\n    \"name\": \"CN_ema_adx_filter_20_25_100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "checks": {
+        "json_valid": false,
+        "no_forbidden_terms": true,
+        "instrument_match": false,
+        "timeframe_match": false,
+        "domestic_exchange": false,
+        "short_disabled": false,
+        "constraints_valid": false,
+        "numeric_types_valid": false
+      },
+      "passed": false
+    },
+    {
+      "id": 13,
+      "prompt": "请为中证500ETF（510500.SH）设计日线EMA20/EMA50趋势策略，最大仓位30%，止损5%",
+      "instrument": "510500.SH",
+      "timeframe": "1d",
+      "periods": [
+        20,
+        50
+      ],
+      "latency_ms": 7401.0,
+      "raw_output": "strategy: {\n  name: CN_ema_trend_20_50_0489,\n  market: {\n    exchange: cn_stock,\n    instrument: 510500.SH,\n    timeframe: 1d\n  },\n  indicators: [\n    { name: ema_fast, type: EMA, params: { period: 20, field: close } },\n    { name: ema_slow, type: EMA, params: { period: 50, field: close } }\n  ],\n  entry: { long: ema_fast > ema_slow, short: null },\n  exit: { long: ema_fast < ema_slow, short: null },\n  risk: { stop_loss: -0.05, max_position_pct: 0.3, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 14,
+      "prompt": "生成中证500ETF（510500.SH）的30分钟RSI均值回归策略，RSI低于30入场、高于70退出，禁止做空",
+      "instrument": "510500.SH",
+      "timeframe": "30m",
+      "periods": [
+        14
+      ],
+      "latency_ms": 8499.86,
+      "raw_output": "strategy: {\n  \"name\": \"CN_mean_reversion_rsi_30_70_0389\",\n  \"market\": {\n    \"exchange\": \"cn_stock\",\n    \"instrument\": \"510500.SH\",\n    \"timeframe\": \"30m\"\n  },\n  \"indicators\": [\n    {\n      \"name\": \"rsi\",\n      \"type\": \"RSI\",\n      \"params\": {\n        \"period\": 14\n      }\n    }\n  ],\n  \"entry\": {\n    \"long\": \"rsi < 30\",\n    \"short\": null\n  },\n  \"exit\": {\n    \"long\": \"rsi > 70\",\n    \"short\": null\n  },\n  \"risk\": {\n    \"stop_loss\": -0.03,\n    \"max_position_pct\": 0.15,\n    \"max_drawdown\": 0.15\n  },\n  \"constraints\": {\n    \"t_plus_one\": true,\n    \"price_limit\": 0.1,\n    \"allow_short\": false,\n    \"lot_size\": 10000\n  }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": false,
+        "numeric_types_valid": true
+      },
+      "passed": false
+    },
+    {
+      "id": 15,
+      "prompt": "为中证500ETF（510500.SH）生成日线布林带反转策略，周期20，标准差2，单次仓位20%",
+      "instrument": "510500.SH",
+      "timeframe": "1d",
+      "periods": [
+        20
+      ],
+      "latency_ms": 9280.72,
+      "raw_output": "strategy: {\n  \"name\": \"BollingerBandsReversal_20_200\",\n  \"market\": {\n    \"exchange\": \"cn_stock\",\n    \"instrument\": \"510500.SH\",\n    \"timeframe\": \"1d\"\n  },\n  \"indicators\": [\n    {\n      \"name\": \"bb_bbm\",\n      \"type\": \"BollingerBands\",\n      \"params\": {\n        \"period\": 20,\n        \"std_dev\": 2.0\n      }\n    }\n  ],\n  \"entry\": {\n    \"long\": \"close < bb_bbm - 2.0 * bb_std\",\n    \"short\": null\n  },\n  \"exit\": {\n    \"long\": \"close > bb_bbm + 2.0 * bb_std\",\n    \"short\": null\n  },\n  \"risk\": {\n    \"stop_loss\": -0.03,\n    \"max_position_pct\": 0.2,\n    \"max_drawdown\": 0.10\n  },\n  \"constraints\": {\n    \"t_plus_one\": true,\n    \"price_limit\": 0.1,\n    \"allow_short\": false,\n    \"lot_size\": 10000\n  }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": false,
+        "numeric_types_valid": true
+      },
+      "passed": false
+    },
+    {
+      "id": 16,
+      "prompt": "设计中证500ETF（510500.SH）的日线MACD趋势策略，参数12、26、9，回撤超过15%停止模拟",
+      "instrument": "510500.SH",
+      "timeframe": "1d",
+      "periods": [
+        12,
+        26,
+        9
+      ],
+      "latency_ms": 8936.56,
+      "raw_output": "strategy: {\n  \"name\": \"CN_macd_trend_12_26_0847\",\n  \"market\": {\n    \"exchange\": \"cn_stock\",\n    \"instrument\": \"510500.SH\",\n    \"timeframe\": \"1d\"\n  },\n  \"indicators\": [\n    {\n      \"name\": \"macd\",\n      \"type\": \"MACD\",\n      \"params\": {\n        \"fast_period\": 12,\n        \"slow_period\": 26,\n        \"signal_period\": 9\n      }\n    }\n  ],\n  \"entry\": {\n    \"long\": \"macd > 0\",\n    \"short\": null\n  },\n  \"exit\": {\n    \"long\": \"macd < 0\",\n    \"short\": null\n  },\n  \"risk\": {\n    \"stop_loss\": -0.05,\n    \"max_position_pct\": 0.25,\n    \"max_drawdown\": 0.15\n  },\n  \"constraints\": {\n    \"t_plus_one\": true,\n    \"price_limit\": 0.1,\n    \"allow_short\": false,\n    \"lot_size\": 10000\n  }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": false,
+        "numeric_types_valid": true
+      },
+      "passed": false
+    },
+    {
+      "id": 17,
+      "prompt": "生成中证500ETF（510500.SH）的30分钟EMA9/EMA21策略，必须遵守T+1、100股整数手和10%涨跌停",
+      "instrument": "510500.SH",
+      "timeframe": "30m",
+      "periods": [
+        9,
+        21
+      ],
+      "latency_ms": 7601.73,
+      "raw_output": "strategy: {\n  name: 'CN_ema_cross_9_21_0287',\n  market: {\n    exchange: 'cn_stock',\n    instrument: '510500.SH',\n    timeframe: '30m'\n  },\n  indicators: [\n    { name: 'ema_fast', type: 'EMA', params: { period: 9, field: 'close' } },\n    { name: 'ema_slow', type: 'EMA', params: { period: 21, field: 'close' } }\n  ],\n  entry: { long: 'ema_fast > ema_slow', short: null },\n  exit: { long: 'ema_fast < ema_slow', short: null },\n  risk: { stop_loss: -0.03, max_position_pct: 0.15, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 18,
+      "prompt": "为中证500ETF（510500.SH）设计ADX过滤的日线EMA策略，仅ADX大于25时入场，不能融券做空",
+      "instrument": "510500.SH",
+      "timeframe": "1d",
+      "periods": [
+        14,
+        20,
+        50
+      ],
+      "latency_ms": 9754.43,
+      "raw_output": "strategy\": {\n    \"name\": \"CN_ema_adx_filter_20_60_25_30_0089\",\n    \"market\": {\n      \"exchange\": \"cn_stock\",\n      \"instrument\": \"510500.SH\",\n      \"timeframe\": \"1d\"\n    },\n    \"indicators\": [\n      {\"name\": \"ema_fast\", \"type\": \"EMA\", \"params\": {\"period\": 20, \"field\": \"close\"}},\n      {\"name\": \"ema_slow\", \"type\": \"EMA\", \"params\": {\"period\": 60, \"field\": \"close\"}},\n      {\"name\": \"adx\", \"type\": \"ADX\", \"params\": {\"period\": 14}}\n    ],\n    \"entry\": {\"long\": \"ema_fast > ema_slow AND adx > 25\", \"short\": null},\n    \"exit\": {\"long\": \"ema_fast < ema_slow\", \"short\": null},\n    \"risk\": {\"stop_loss\": -0.03, \"max_position_pct\": 0.15, \"max_drawdown\": 0.15},\n    \"constraints\": {\"t_plus_one\": true, \"price_limit\": 0.1, \"allow_short\": false, \"lot_size\": 1000}\n  }\n}",
+      "checks": {
+        "json_valid": false,
+        "no_forbidden_terms": true,
+        "instrument_match": false,
+        "timeframe_match": false,
+        "domestic_exchange": false,
+        "short_disabled": false,
+        "constraints_valid": false,
+        "numeric_types_valid": false
+      },
+      "passed": false
+    },
+    {
+      "id": 19,
+      "prompt": "请为创业板ETF（159915.SZ）设计日线EMA20/EMA50趋势策略，最大仓位30%，止损5%",
+      "instrument": "159915.SZ",
+      "timeframe": "1d",
+      "periods": [
+        20,
+        50
+      ],
+      "latency_ms": 7461.61,
+      "raw_output": "strategy: {\n  name: CN_ema_trend_20_50_0387,\n  market: {\n    exchange: cn_stock,\n    instrument: 159915.SZ,\n    timeframe: 1d\n  },\n  indicators: [\n    { name: ema_fast, type: EMA, params: { period: 20, field: close } },\n    { name: ema_slow, type: EMA, params: { period: 50, field: close } }\n  ],\n  entry: { long: ema_fast > ema_slow, short: null },\n  exit: { long: ema_fast < ema_slow, short: null },\n  risk: { stop_loss: -0.05, max_position_pct: 0.3, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 20,
+      "prompt": "生成创业板ETF（159915.SZ）的30分钟RSI均值回归策略，RSI低于30入场、高于70退出，禁止做空",
+      "instrument": "159915.SZ",
+      "timeframe": "30m",
+      "periods": [
+        14
+      ],
+      "latency_ms": 8633.53,
+      "raw_output": "strategy\": {\n    \"name\": \"CN_rsi_mean_reversion_0368\",\n    \"market\": {\n      \"exchange\": \"cn_stock\",\n      \"instrument\": \"159915.SZ\",\n      \"timeframe\": \"30m\"\n    },\n    \"indicators\": [\n      {\"name\": \"rsi\", \"type\": \"RSI\", \"params\": {\"period\": 14}},\n      {\"name\": \"rsi_ma\", \"type\": \"SMA\", \"params\": {\"period\": 20, \"field\": \"rsi\"}}\n    ],\n    \"entry\": {\"long\": \"rsi < rsi_ma - 10\", \"short\": null},\n    \"exit\": {\"long\": \"rsi > rsi_ma + 10\", \"short\": null},\n    \"risk\": {\"stop_loss\": -0.03, \"max_position_pct\": 0.15, \"max_drawdown\": 0.15},\n    \"constraints\": {\"t_plus_one\": true, \"price_limit\": 0.1, \"allow_short\": false, \"lot_size\": 10000}\n  }\n}\n",
+      "checks": {
+        "json_valid": false,
+        "no_forbidden_terms": true,
+        "instrument_match": false,
+        "timeframe_match": false,
+        "domestic_exchange": false,
+        "short_disabled": false,
+        "constraints_valid": false,
+        "numeric_types_valid": false
+      },
+      "passed": false
+    },
+    {
+      "id": 21,
+      "prompt": "为创业板ETF（159915.SZ）生成日线布林带反转策略，周期20，标准差2，单次仓位20%",
+      "instrument": "159915.SZ",
+      "timeframe": "1d",
+      "periods": [
+        20
+      ],
+      "latency_ms": 6604.22,
+      "raw_output": "strategy: {\n  name: 'BollingerBandsReversal_20_200',\n  market: {\n    exchange: 'cn_stock',\n    instrument: '159915.SZ',\n    timeframe: '1d'\n  },\n  indicators: [\n    { name: 'bb', type: 'BollingerBands', params: { period: 20, std_dev: 2 } }\n  ],\n  entry: { long: 'close < bb_lower', short: null },\n  exit: { long: 'close > bb_upper', short: null },\n  risk: { stop_loss: -0.05, max_position_pct: 0.2, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 22,
+      "prompt": "设计创业板ETF（159915.SZ）的日线MACD趋势策略，参数12、26、9，回撤超过15%停止模拟",
+      "instrument": "159915.SZ",
+      "timeframe": "1d",
+      "periods": [
+        12,
+        26,
+        9
+      ],
+      "latency_ms": 8117.59,
+      "raw_output": "strategy: {\n  name: 'CN_macd_trend_12_26_0387',\n  market: {\n    exchange: 'cn_stock',\n    instrument: '159915.SZ',\n    timeframe: '1d'\n  },\n  indicators: [\n    { name: 'macd', type: 'MACD', params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 } },\n    { name: 'ema_fast', type: 'EMA', params: { period: 20, field: 'close' } }\n  ],\n  entry: { long: 'macd > 0 AND close < ema_fast', short: null },\n  exit: { long: 'macd < 0', short: null },\n  risk: { stop_loss: -0.05, max_position_pct: 0.3, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 23,
+      "prompt": "生成创业板ETF（159915.SZ）的30分钟EMA9/EMA21策略，必须遵守T+1、100股整数手和10%涨跌停",
+      "instrument": "159915.SZ",
+      "timeframe": "30m",
+      "periods": [
+        9,
+        21
+      ],
+      "latency_ms": 7424.43,
+      "raw_output": "strategy: {\n  name: CN_ema_cross_9_21_0387,\n  market: {\n    exchange: cn_stock,\n    instrument: 159915.SZ,\n    timeframe: 30m\n  },\n  indicators: [\n    { name: ema_fast, type: EMA, params: { period: 9, field: close } },\n    { name: ema_slow, type: EMA, params: { period: 21, field: close } }\n  ],\n  entry: { long: ema_fast > ema_slow, short: null },\n  exit: { long: ema_fast < ema_slow, short: null },\n  risk: { stop_loss: -0.03, max_position_pct: 0.15, max_drawdown: 0.15 },\n  constraints: { t_plus_one: true, price_limit: 0.1, allow_short: false, lot_size: 100 }\n}\n",
+      "checks": {
+        "json_valid": true,
+        "no_forbidden_terms": true,
+        "instrument_match": true,
+        "timeframe_match": true,
+        "domestic_exchange": true,
+        "short_disabled": true,
+        "constraints_valid": true,
+        "numeric_types_valid": true
+      },
+      "passed": true
+    },
+    {
+      "id": 24,
+      "prompt": "为创业板ETF（159915.SZ）设计ADX过滤的日线EMA策略，仅ADX大于25时入场，不能融券做空",
+      "instrument": "159915.SZ",
+      "timeframe": "1d",
+      "periods": [
+        14,
+        20,
+        50
+      ],
+      "latency_ms": 31051.19,
+      "raw_output": "strategy\": {\n    \"name\": \"CN_ema_adx_filter_20_60_25_100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "checks": {
+        "json_valid": false,
+        "no_forbidden_terms": true,
+        "instrument_match": false,
+        "timeframe_match": false,
+        "domestic_exchange": false,
+        "short_disabled": false,
+        "constraints_valid": false,
+        "numeric_types_valid": false
+      },
+      "passed": false
+    }
+  ]
+}

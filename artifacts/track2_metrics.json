@@ -1,0 +1,137 @@
+{
+  "project": "track2-cn-market-agent",
+  "date": "2026-08-01",
+  "hardware": {
+    "gpu": "AMD Radeon Graphics (gfx1100)",
+    "rocm_version": "7.2.1",
+    "cpu": "AMD EPYC 9334 32-Core Processor"
+  },
+  "model": {
+    "base": "Qwen2.5-7B (Qwen2ForCausalLM)",
+    "served_name": "models/qwen-trader-merged",
+    "path": "/persistent/qwen-trader-cn-merged",
+    "model_sha256": "8806c9d59657ce30267bb13e9b59b462632a61ad2e7d8ef76b5685f79a84a23d",
+    "model_size": "15G",
+    "dtype": "float16",
+    "hidden_size": 3584,
+    "num_hidden_layers": 28,
+    "num_attention_heads": 28,
+    "vocab_size": 152064
+  },
+  "lora_training": {
+    "adapter_sha256": "4b7d746f54c05ccdb2de989d9c81ffa505511c96f15b708c66d37dc055ae710e",
+    "adapter_size": "617M",
+    "base_model": "/persistent/qwen-trader-merged",
+    "peft_type": "LORA",
+    "r": 64,
+    "alpha": 128,
+    "dropout": 0.05,
+    "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    "quantization": "none (FP16 LoRA)",
+    "train_samples": 400,
+    "epochs": 3,
+    "max_steps": 39,
+    "batch_size": 2,
+    "train_runtime_seconds": 615,
+    "final_train_loss": 0.2848,
+    "final_token_accuracy": 0.981,
+    "peak_gpu_memory_gb": 16.21
+  },
+  "vllm": {
+    "version": "0.16.1.dev0+g89a77b108.d20260317",
+    "port": 8000,
+    "max_model_len": 4096,
+    "gpu_memory_utilization": 0.35,
+    "dtype": "float16",
+    "enforce_eager": true,
+    "prefix_cache_hit_rate": 0.817
+  },
+  "evaluation_before_fix": {
+    "total": 24,
+    "passed": 11,
+    "pass_rate": 0.4583,
+    "avg_latency_ms": 10243.08,
+    "check_rates": {
+      "json_valid": 0.75,
+      "no_forbidden_terms": 1.0,
+      "instrument_match": 0.7083,
+      "timeframe_match": 0.7083,
+      "domestic_exchange": 0.7083,
+      "short_disabled": 0.7083,
+      "constraints_valid": 0.4583,
+      "numeric_types_valid": 0.7083
+    }
+  },
+  "evaluation_after_fix": {
+    "total": 24,
+    "passed": 24,
+    "pass_rate": 1.0,
+    "avg_latency_ms": 8247.69,
+    "p95_latency_ms": 9795.56,
+    "total_retries": 0,
+    "check_rates": {
+      "json_valid": 1.0,
+      "no_forbidden_terms": 1.0,
+      "instrument_match": 1.0,
+      "timeframe_match": 1.0,
+      "domestic_exchange": 1.0,
+      "short_disabled": 1.0,
+      "constraints_valid": 1.0,
+      "numeric_types_valid": 1.0
+    },
+    "targets_met": {
+      "json_valid_ge_95": true,
+      "instrument_match_ge_90": true,
+      "timeframe_match_ge_90": true,
+      "short_disabled_ge_95": true,
+      "constraints_valid_ge_90": true,
+      "overall_ge_80": true
+    }
+  },
+  "dify_workflow": {
+    "app_name": "AMD 国内市场量化智能体",
+    "nodes": [
+      {"id": "start", "type": "start", "name": "用户输入"},
+      {"id": "rag", "type": "http-request", "name": "RAG 知识检索", "endpoint": "/api/knowledge"},
+      {"id": "llm", "type": "llm", "name": "LLM DSL 生成", "model": "models/qwen-trader-merged"},
+      {"id": "code", "type": "code", "name": "代码执行 (DSL 校验)"},
+      {"id": "backtest", "type": "http-request", "name": "回测请求", "endpoint": "/api/cn/backtest/report"},
+      {"id": "answer", "type": "answer", "name": "风险报告回复"}
+    ],
+    "tests": [
+      {
+        "name": "沪深300 ETF EMA20/50 趋势",
+        "instrument": "510300.SH",
+        "timeframe": "1d",
+        "return_pct": -2.61,
+        "max_drawdown_pct": -3.28,
+        "decision": "PASS"
+      },
+      {
+        "name": "中证500 ETF RSI 均值回归",
+        "instrument": "510500.SH",
+        "timeframe": "30m",
+        "return_pct": -0.49,
+        "max_drawdown_pct": -1.27,
+        "decision": "REVIEW"
+      },
+      {
+        "name": "创业板 ETF ADX+EMA 过滤",
+        "instrument": "159915.SZ",
+        "timeframe": "1d",
+        "return_pct": 6.07,
+        "max_drawdown_pct": -2.93,
+        "decision": "PASS"
+      }
+    ],
+    "data_source": "确定性合成历史行情（仅用于系统闭环演示）",
+    "market_constraints": ["T+1", "100股整手", "禁止裸卖空", "涨跌停10%", "佣金", "卖出印花税"]
+  },
+  "disclaimer": {
+    "simulated_data": true,
+    "no_real_trading": true,
+    "no_crypto": true,
+    "no_investment_advice": true,
+    "hardware": "AMD GPU (gfx1100) + ROCm 7.2.1"
+  }
+}

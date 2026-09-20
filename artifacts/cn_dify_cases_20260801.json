@@ -1,0 +1,282 @@
+{
+  "model": "models/qwen-trader-merged",
+  "cases": [
+    {
+      "case_id": "ema_trend",
+      "user_prompt": "请为沪深300ETF（510300.SH）设计日线EMA20/EMA50趋势策略，最大仓位30%，止损5%",
+      "raw_output": "strategy:\n  name: EmaTrend2050_002\n  market:\n    exchange: cn_stock\n    instrument: 510300.SH\n    timeframe: 1d\n  indicators:\n    - name: ema_fast\n      type: EMA\n      params:\n        period: 20\n        field: close\n    - name: ema_slow\n      type: EMA\n      params:\n        period: 50\n        field: close\n  entry:\n    long: ema_fast > ema_slow\n    short: null\n  exit:\n    long: ema_fast < ema_slow\n    short: null\n  risk:\n    stop_loss: -0.05\n    max_position_pct: 0.3\n    max_drawdown: 0.15\n  constraints:\n    t_plus_one: true\n    price_limit: 0.1\n    allow_short: false\n    lot_size: 100\n",
+      "parsed": {
+        "strategy": {
+          "name": "EmaTrend2050_002",
+          "market": {
+            "exchange": "cn_stock",
+            "instrument": "510300.SH",
+            "timeframe": "1d"
+          },
+          "indicators": [
+            {
+              "name": "ema_fast",
+              "type": "EMA",
+              "params": {
+                "period": 20,
+                "field": "close"
+              }
+            },
+            {
+              "name": "ema_slow",
+              "type": "EMA",
+              "params": {
+                "period": 50,
+                "field": "close"
+              }
+            }
+          ],
+          "entry": {
+            "long": "ema_fast > ema_slow",
+            "short": null
+          },
+          "exit": {
+            "long": "ema_fast < ema_slow",
+            "short": null
+          },
+          "risk": {
+            "stop_loss": -0.05,
+            "max_position_pct": 0.3,
+            "max_drawdown": 0.15
+          },
+          "constraints": {
+            "t_plus_one": true,
+            "price_limit": 0.1,
+            "allow_short": false,
+            "lot_size": 100
+          }
+        }
+      },
+      "canonicalized": {
+        "strategy": {
+          "name": "EmaTrend2050_002",
+          "market": {
+            "exchange": "cn_stock",
+            "instrument": "510300.SH",
+            "timeframe": "1d"
+          },
+          "indicators": [
+            {
+              "name": "ema_fast",
+              "type": "EMA",
+              "params": {
+                "period": 20,
+                "field": "close"
+              }
+            },
+            {
+              "name": "ema_slow",
+              "type": "EMA",
+              "params": {
+                "period": 50,
+                "field": "close"
+              }
+            }
+          ],
+          "entry": {
+            "long": "ema_fast > ema_slow",
+            "short": null
+          },
+          "exit": {
+            "long": "ema_fast < ema_slow",
+            "short": null
+          },
+          "risk": {
+            "stop_loss": -0.05,
+            "max_position_pct": 0.3,
+            "max_drawdown": 0.15
+          },
+          "constraints": {
+            "t_plus_one": true,
+            "price_limit": 0.1,
+            "allow_short": false,
+            "lot_size": 100
+          }
+        }
+      },
+      "repairs": [],
+      "errors": [],
+      "canonicalization_pass": true,
+      "report": "# AMD 国内市场量化策略演示报告\n\n- 策略：EmaTrend2050_002\n- 标的：510300.SH\n- 周期：1d\n- 运行模式：Paper Trading / 模拟回测\n- 行情来源：确定性合成历史行情（仅用于系统闭环演示）\n- 市场约束：T+1、100股整数手、禁止裸卖空、佣金、卖出印花税、滑点\n- 初始资金：¥100,000.00\n- 最终资金：¥97,392.95\n- 总收益率：-2.61%\n- 最大回撤：-3.28%\n- 完成交易：2 笔\n- 胜率：0.00%\n- 相对演示基准 Alpha：3.68%\n\n## 风控结论\n\n✅ PASS\n\n> 本结果只验证 AMD GPU Agent 的策略生成、校验与模拟执行闭环，不构成投资建议。"
+    },
+    {
+      "case_id": "rsi_reversion",
+      "user_prompt": "请为中证500ETF（510500.SH）设计30分钟RSI超卖均值回归策略，止损4%，禁止做空",
+      "raw_output": "strategy:\n  name: CN_rsi_mean_reversion_0350\n  market:\n    exchange: cn_stock\n    instrument: 510500.SH\n    timeframe: 30m\n  indicators:\n  - name: rsi\n    type: RSI\n    params:\n      period: 14\n      field: close\n  entry:\n    long: rsi < 30\n    short: null\n  exit:\n    long: rsi > 70\n    short: null\n  risk:\n    stop_loss: -0.04\n    max_position_pct: 0.15\n    max_drawdown: 0.15\n  constraints:\n    t_plus_one: true\n    price_limit: 0.1\n    allow_short: false\n    lot_size: 100\n",
+      "parsed": {
+        "strategy": {
+          "name": "CN_rsi_mean_reversion_0350",
+          "market": {
+            "exchange": "cn_stock",
+            "instrument": "510500.SH",
+            "timeframe": "30m"
+          },
+          "indicators": [
+            {
+              "name": "rsi",
+              "type": "RSI",
+              "params": {
+                "period": 14,
+                "field": "close"
+              }
+            }
+          ],
+          "entry": {
+            "long": "rsi < 30",
+            "short": null
+          },
+          "exit": {
+            "long": "rsi > 70",
+            "short": null
+          },
+          "risk": {
+            "stop_loss": -0.04,
+            "max_position_pct": 0.15,
+            "max_drawdown": 0.15
+          },
+          "constraints": {
+            "t_plus_one": true,
+            "price_limit": 0.1,
+            "allow_short": false,
+            "lot_size": 100
+          }
+        }
+      },
+      "canonicalized": {
+        "strategy": {
+          "name": "CN_rsi_mean_reversion_0350",
+          "market": {
+            "exchange": "cn_stock",
+            "instrument": "510500.SH",
+            "timeframe": "30m"
+          },
+          "indicators": [
+            {
+              "name": "rsi",
+              "type": "RSI",
+              "params": {
+                "period": 14,
+                "field": "close"
+              }
+            }
+          ],
+          "entry": {
+            "long": "rsi < 30",
+            "short": null
+          },
+          "exit": {
+            "long": "rsi > 70",
+            "short": null
+          },
+          "risk": {
+            "stop_loss": -0.04,
+            "max_position_pct": 0.15,
+            "max_drawdown": 0.15
+          },
+          "constraints": {
+            "t_plus_one": true,
+            "price_limit": 0.1,
+            "allow_short": false,
+            "lot_size": 100
+          }
+        }
+      },
+      "repairs": [],
+      "errors": [],
+      "canonicalization_pass": true,
+      "report": "# AMD 国内市场量化策略演示报告\n\n- 策略：CN_rsi_mean_reversion_0350\n- 标的：510500.SH\n- 周期：30m\n- 运行模式：Paper Trading / 模拟回测\n- 行情来源：确定性合成历史行情（仅用于系统闭环演示）\n- 市场约束：T+1、100股整数手、禁止裸卖空、佣金、卖出印花税、滑点\n- 初始资金：¥100,000.00\n- 最终资金：¥99,510.12\n- 总收益率：-0.49%\n- 最大回撤：-1.27%\n- 完成交易：1 笔\n- 胜率：0.00%\n- 相对演示基准 Alpha：15.97%\n\n## 风控结论\n\n⚠️ REVIEW\n\n> 本结果只验证 AMD GPU Agent 的策略生成、校验与模拟执行闭环，不构成投资建议。"
+    },
+    {
+      "case_id": "breakout_risk",
+      "user_prompt": "请为创业板ETF（159915.SZ）设计日线布林带突破策略，必须遵守T+1、100股整手和禁止做空",
+      "raw_output": "strategy:\n  name: BollingerBreakout1520\n  market:\n    exchange: cn_stock\n    instrument: 159915.SZ\n    timeframe: 1d\n  indicators:\n    - name: bb\n      type: BollingerBands\n      params:\n        period: 15\n        std_dev: 2.0\n  entry:\n    long: close > bb_upper\n    short: null\n  exit:\n    long: close < bb_lower\n    short: null\n  risk:\n    stop_loss: -0.03\n    max_position_pct: 0.25\n    max_drawdown: 0.15\n  constraints:\n    t_plus_one: true\n    price_limit: 0.1\n    allow_short: false\n    lot_size: 100\n",
+      "parsed": {
+        "strategy": {
+          "name": "BollingerBreakout1520",
+          "market": {
+            "exchange": "cn_stock",
+            "instrument": "159915.SZ",
+            "timeframe": "1d"
+          },
+          "indicators": [
+            {
+              "name": "bb",
+              "type": "BollingerBands",
+              "params": {
+                "period": 15,
+                "std_dev": 2.0
+              }
+            }
+          ],
+          "entry": {
+            "long": "close > bb_upper",
+            "short": null
+          },
+          "exit": {
+            "long": "close < bb_lower",
+            "short": null
+          },
+          "risk": {
+            "stop_loss": -0.03,
+            "max_position_pct": 0.25,
+            "max_drawdown": 0.15
+          },
+          "constraints": {
+            "t_plus_one": true,
+            "price_limit": 0.1,
+            "allow_short": false,
+            "lot_size": 100
+          }
+        }
+      },
+      "canonicalized": {
+        "strategy": {
+          "name": "BollingerBreakout1520",
+          "market": {
+            "exchange": "cn_stock",
+            "instrument": "159915.SZ",
+            "timeframe": "1d"
+          },
+          "indicators": [
+            {
+              "name": "bb",
+              "type": "BollingerBands",
+              "params": {
+                "period": 15,
+                "std_dev": 2.0
+              }
+            }
+          ],
+          "entry": {
+            "long": "close > bb_upper",
+            "short": null
+          },
+          "exit": {
+            "long": "close < bb_lower",
+            "short": null
+          },
+          "risk": {
+            "stop_loss": -0.03,
+            "max_position_pct": 0.25,
+            "max_drawdown": 0.15
+          },
+          "constraints": {
+            "t_plus_one": true,
+            "price_limit": 0.1,
+            "allow_short": false,
+            "lot_size": 100
+          }
+        }
+      },
+      "repairs": [],
+      "errors": [],
+      "canonicalization_pass": true,
+      "report": "# AMD 国内市场量化策略演示报告\n\n- 策略：BollingerBreakout1520\n- 标的：159915.SZ\n- 周期：1d\n- 运行模式：Paper Trading / 模拟回测\n- 行情来源：确定性合成历史行情（仅用于系统闭环演示）\n- 市场约束：T+1、100股整数手、禁止裸卖空、佣金、卖出印花税、滑点\n- 初始资金：¥100,000.00\n- 最终资金：¥103,635.68\n- 总收益率：3.64%\n- 最大回撤：-2.70%\n- 完成交易：2 笔\n- 胜率：50.00%\n- 相对演示基准 Alpha：-39.28%\n\n## 风控结论\n\n✅ PASS\n\n> 本结果只验证 AMD GPU Agent 的策略生成、校验与模拟执行闭环，不构成投资建议。"
+    }
+  ]
+}
