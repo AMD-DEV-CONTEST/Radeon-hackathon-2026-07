@@ -1,0 +1,33 @@
+# ============================================================
+# AMD ROCm 环境依赖
+# ⚠️ 有严格的安装顺序要求，详见 README「安装与运行」
+# ============================================================
+
+# ---- 1) JAX (ROCm) —— 必须最先装 ----
+# pip install --upgrade "jax[rocm7-local]"
+# 不要用 jax[cuda12]，那是 NVIDIA 专用
+
+# ---- 2) 仿真与强化学习 ----
+mujoco>=3.11.0
+mujoco-mjx>=3.11.0
+brax==0.14.2
+playground        # import name is mujoco_playground
+
+# ---- 3) 版本约束 ----
+# setuptools>=81 移除了 pkg_resources，lightning 会崩
+setuptools<81
+numpy>=1.26,<2.0
+
+# ---- 4) 部署（sim2sim / 真机）----
+# cyclonedds 需先源码编译 C 库，见 sim2sim复现指南.md
+cyclonedds==0.10.2
+# unitree_sdk2py 从源码装: pip install -e . --no-deps
+pygame          # unitree_mujoco 桥接层无条件 import
+
+# ---- 5) 视频处理（GVHMR，独立 venv）----
+# torch/torchvision/triton 用镜像自带的 ROCm wheel，不要从 PyPI 装
+# pytorch3d 需源码编译: MAX_JOBS=8 FORCE_CUDA=0 pip install --no-build-isolation -e .
+yacs
+pycolmap
+wis3d
+ultralytics>=8.4      # 8.2.42 与 PyTorch>=2.6 的 weights_only 冲突

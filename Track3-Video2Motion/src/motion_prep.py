@@ -1,0 +1,222 @@
+"""Fill out a GMR retargeting result into a BeyondMimic-format motion file.
+
+Our npz holds only root_pos, root_quat and joint_pos. BeyondMimic computes its
+rewards **in 3-D** and needs the position, orientation, linear and angular
+velocity of every body link, plus joint velocities. All of it can be derived
+with MuJoCo forward kinematics and finite differences — the same thing
+BeyondMimic's own csv_to_npz.py does.
+
+Fields written:
+    fps                 scalar
+    joint_pos           (T, 29)
+    joint_vel           (T, 29)
+    body_pos_w          (T, B, 3)
+    body_quat_w         (T, B, 4)   wxyz
+    body_lin_vel_w      (T, B, 3)
+    body_ang_vel_w      (T, B, 3)   world frame
+    body_names          (B,)
+
+Usage:
+    python motion_prep.py --inp motions_mjx/tennis.npz --out motions_bm/tennis.npz
+"""
+
+import argparse
+from pathlib import Path
+
+import mujoco
+import numpy as np
+
+# The 14 links BeyondMimic's G1 configuration tracks (flat_env_cfg.py).
+BODY_NAMES = [
+    "pelvis",
+    "left_hip_roll_link",
+    "left_knee_link",
+    "left_ankle_roll_link",
+    "right_hip_roll_link",
+    "right_knee_link",
+    "right_ankle_roll_link",
+    "torso_link",
+    "left_shoulder_roll_link",
+    "left_elbow_link",
+    "left_wrist_yaw_link",
+    "right_shoulder_roll_link",
+    "right_elbow_link",
+    "right_wrist_yaw_link",
+]
+ANCHOR_BODY = "torso_link"
+
+
+def load_model(xml):
+    from mujoco_playground._src import mjx_env
+    xd = Path(xml).parent
+    assets = {}
+    mjx_env.update_assets(assets, xd)
+    mjx_env.update_assets(assets, xd / "assets")
+    mjx_env.update_assets(assets, mjx_env.MENAGERIE_PATH / "unitree_g1" / "assets")
+    return mujoco.MjModel.from_xml_string(Path(xml).read_text(), assets)
+
+
+def quat_diff_to_angvel(q0, q1, dt):
+    """World-frame angular velocity from the difference between two wxyz
+    quaternions.
+
+    q_rel = q1 * conj(q0); take its rotation vector and divide by dt.
+    """
+    w0, x0, y0, z0 = q0
+    w1, x1, y1, z1 = q1
+    # conj(q0)
+    cw, cx, cy, cz = w0, -x0, -y0, -z0
+    # q1 * conj(q0)
+    rw = w1 * cw - x1 * cx - y1 * cy - z1 * cz
+    rx = w1 * cx + x1 * cw + y1 * cz - z1 * cy
+    ry = w1 * cy - x1 * cz + y1 * cw + z1 * cx
+    rz = w1 * cz + x1 * cy - y1 * cx + z1 * cw
+    if rw < 0.0:                      # take the short arc
+        rw, rx, ry, rz = -rw, -rx, -ry, -rz
+    n = np.sqrt(rx * rx + ry * ry + rz * rz)
+    if n < 1e-9:
+        return np.zeros(3)
+    angle = 2.0 * np.arctan2(n, rw)
+    return (np.array([rx, ry, rz]) / n) * (angle / dt)
+
+
+def central_diff(x, dt):
+    """Central difference, one-sided at the endpoints. x: (T, ...)"""
+    v = np.zeros_like(x)
+    v[1:-1] = (x[2:] - x[:-2]) / (2.0 * dt)
+    v[0] = (x[1] - x[0]) / dt
+    v[-1] = (x[-1] - x[-2]) / dt
+    return v
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--inp", required=True)
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--hold_seconds", type=float, default=0.0,
+                    help="optionally append this many seconds of the final "
+                         "pose so the policy learns to settle. Measured "
+                         "trade-off at 1.5 s: it does settle (3 s+), but it "
+                         "exploits the loose anchor_pos std and squats ~8 cm "
+                         "through the motion (tracking 0.027 -> 0.074 m). "
+                         "The deployed answer is the post-motion handover in "
+                         "deploy_track.py instead.")
+    from mujoco_playground._src.locomotion.g1 import g1_constants as _c
+    ap.add_argument("--xml", default=_c.FEET_ONLY_FLAT_TERRAIN_XML.as_posix())
+    args = ap.parse_args()
+
+    d_in = np.load(args.inp)
+    joint_pos = d_in["joint_pos"].astype(np.float64)      # (T, 29)
+    root_pos = d_in["root_pos"].astype(np.float64)        # (T, 3)
+    root_quat = d_in["root_quat"].astype(np.float64)      # (T, 4) wxyz
+    fps = float(d_in["fps"])
+    dt = 1.0 / fps
+    T, nj = joint_pos.shape
+
+    m = load_model(args.xml)
+    data = mujoco.MjData(m)
+    bids = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, n) for n in BODY_NAMES]
+    missing = [n for n, i in zip(BODY_NAMES, bids) if i < 0]
+    if missing:
+        raise SystemExit(f"bodies not found in model: {missing}")
+    B = len(bids)
+
+    body_pos = np.zeros((T, B, 3))
+    body_quat = np.zeros((T, B, 4))
+
+    # ---- forward kinematics: set qpos per frame, read world body poses ----
+    for t in range(T):
+        data.qpos[0:3] = root_pos[t]
+        data.qpos[3:7] = root_quat[t]
+        data.qpos[7:] = joint_pos[t]
+        data.qvel[:] = 0.0
+        mujoco.mj_forward(m, data)
+        for k, bid in enumerate(bids):
+            body_pos[t, k] = data.xpos[bid]
+            body_quat[t, k] = data.xquat[bid]
+
+    # ---- velocities: central difference for position, quaternion delta for
+    #      orientation ----
+    body_lin_vel = central_diff(body_pos, dt)
+    body_ang_vel = np.zeros((T, B, 3))
+    for k in range(B):
+        for t in range(T):
+            t0, t1 = max(t - 1, 0), min(t + 1, T - 1)
+            span = (t1 - t0) * dt
+            if span < 1e-9:
+                continue
+            body_ang_vel[t, k] = quat_diff_to_angvel(
+                body_quat[t0, k], body_quat[t1, k], span)
+
+    joint_vel = central_diff(joint_pos, dt)
+
+    # ---- optionally pad with a hold on the final pose ----
+    # Training ends the episode the moment the reference runs out, so the
+    # policy never learns what to do afterwards: measured without padding, it
+    # holds the final pose for 63 steps (1.3 s) and then falls. Padding asks
+    # the policy to stabilise that tail as well, giving the motion somewhere
+    # to settle.
+    n_hold = int(round(args.hold_seconds * fps))
+    if n_hold > 0:
+        joint_pos = np.concatenate([joint_pos, np.repeat(joint_pos[-1:], n_hold, 0)])
+        root_pos = np.concatenate([root_pos, np.repeat(root_pos[-1:], n_hold, 0)])
+        root_quat = np.concatenate([root_quat, np.repeat(root_quat[-1:], n_hold, 0)])
+        body_pos = np.concatenate([body_pos, np.repeat(body_pos[-1:], n_hold, 0)])
+        body_quat = np.concatenate([body_quat, np.repeat(body_quat[-1:], n_hold, 0)])
+        # Velocities are zero through the hold — the target is to stop.
+        joint_vel = np.concatenate([joint_vel, np.zeros((n_hold, nj))])
+        body_lin_vel = np.concatenate([body_lin_vel, np.zeros((n_hold, B, 3))])
+        body_ang_vel = np.concatenate([body_ang_vel, np.zeros((n_hold, B, 3))])
+        T = joint_pos.shape[0]
+
+    # ---- ground alignment: shift the whole trajectory so the lowest point of
+    #      the lowest ankle link sits at z=0 ----
+    #      GMR's output height is on a human scale; used directly the robot
+    #      either floats or intersects the floor.
+    ankle_idx = [BODY_NAMES.index("left_ankle_roll_link"),
+                 BODY_NAMES.index("right_ankle_roll_link")]
+    # Calibrate the ankle-link-origin to sole offset on the first frame.
+    data.qpos[0:3] = root_pos[0]
+    data.qpos[3:7] = root_quat[0]
+    data.qpos[7:] = joint_pos[0]
+    mujoco.mj_forward(m, data)
+    sole_off = min(
+        min(data.geom_xpos[g][2] for g in range(m.ngeom)
+            if m.geom_bodyid[g] == bids[a]) if any(
+                m.geom_bodyid[g] == bids[a] for g in range(m.ngeom))
+        else data.xpos[bids[a]][2]
+        for a in ankle_idx)
+    shift = sole_off - 0.0
+    body_pos[:, :, 2] -= shift
+    root_pos_adj = root_pos.copy()
+    root_pos_adj[:, 2] -= shift
+
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    np.savez(
+        args.out,
+        fps=np.float32(fps),
+        joint_pos=joint_pos.astype(np.float32),
+        joint_vel=joint_vel.astype(np.float32),
+        root_pos=root_pos_adj.astype(np.float32),
+        root_quat=root_quat.astype(np.float32),
+        body_pos_w=body_pos.astype(np.float32),
+        body_quat_w=body_quat.astype(np.float32),
+        body_lin_vel_w=body_lin_vel.astype(np.float32),
+        body_ang_vel_w=body_ang_vel.astype(np.float32),
+        body_names=np.array(BODY_NAMES),
+        anchor_body=np.array(ANCHOR_BODY),
+    )
+
+    print(f"OK  {args.out}")
+    print(f"    {T} frames @ {fps:.1f} fps = {T/fps:.2f}s, {B} tracked bodies"
+          + (f"  (incl. {n_hold} hold frames)" if n_hold else ""))
+    print(f"    ground alignment shift {shift:+.4f} m")
+    print(f"    root_z       {root_pos_adj[:,2].min():.3f} .. {root_pos_adj[:,2].max():.3f}")
+    print(f"    body_z       {body_pos[:,:,2].min():.3f} .. {body_pos[:,:,2].max():.3f}")
+    print(f"    |lin_vel|    max {np.linalg.norm(body_lin_vel,axis=-1).max():.2f} m/s")
+    print(f"    |ang_vel|    max {np.linalg.norm(body_ang_vel,axis=-1).max():.2f} rad/s")
+    print(f"    |joint_vel|  max {np.abs(joint_vel).max():.2f} rad/s")
+
+
+if __name__ == "__main__":
+    main()
