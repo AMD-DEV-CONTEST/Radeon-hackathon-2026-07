@@ -1,0 +1,59 @@
+diff --git a/src/lerobot/optim/schedulers.py b/src/lerobot/optim/schedulers.py
+index b5d54b3..b7b0015 100644
+--- a/src/lerobot/optim/schedulers.py
++++ b/src/lerobot/optim/schedulers.py
+@@ -90,13 +90,15 @@ class CosineDecayWithWarmupSchedulerConfig(LRSchedulerConfig):
+     num_decay_steps: int
+     peak_lr: float
+     decay_lr: float
++    auto_scale: bool = True
++    decay_after_warmup: bool = False
+ 
+     def build(self, optimizer: Optimizer, num_training_steps: int) -> LambdaLR:
+         # Auto-scale scheduler parameters if training steps are shorter than configured decay steps
+         actual_warmup_steps = self.num_warmup_steps
+         actual_decay_steps = self.num_decay_steps
+ 
+-        if num_training_steps < self.num_decay_steps:
++        if self.auto_scale and num_training_steps < self.num_decay_steps:
+             # Calculate scaling factor to fit the schedule into the available training steps
+             scale_factor = num_training_steps / self.num_decay_steps
+             actual_warmup_steps = int(self.num_warmup_steps * scale_factor)
+@@ -118,8 +120,13 @@ class CosineDecayWithWarmupSchedulerConfig(LRSchedulerConfig):
+                 return (1 / (actual_warmup_steps + 1) - 1) * frac + 1
+ 
+             def cosine_decay_schedule(current_step):
+-                step = min(current_step, actual_decay_steps)
+-                cosine_decay = 0.5 * (1 + math.cos(math.pi * step / actual_decay_steps))
++                if self.decay_after_warmup:
++                    decay_span = max(1, actual_decay_steps - actual_warmup_steps)
++                    step = min(max(0, current_step - actual_warmup_steps), decay_span)
++                else:
++                    decay_span = actual_decay_steps
++                    step = min(current_step, actual_decay_steps)
++                cosine_decay = 0.5 * (1 + math.cos(math.pi * step / decay_span))
+                 alpha = self.decay_lr / self.peak_lr
+                 decayed = (1 - alpha) * cosine_decay + alpha
+                 return decayed
+diff --git a/src/lerobot/policies/smolvla/configuration_smolvla.py b/src/lerobot/policies/smolvla/configuration_smolvla.py
+index eedf477..698d10e 100644
+--- a/src/lerobot/policies/smolvla/configuration_smolvla.py
++++ b/src/lerobot/policies/smolvla/configuration_smolvla.py
+@@ -82,6 +82,8 @@ class SmolVLAConfig(PreTrainedConfig):
+     scheduler_warmup_steps: int = 1_000
+     scheduler_decay_steps: int = 30_000
+     scheduler_decay_lr: float = 2.5e-6
++    scheduler_auto_scale: bool = True
++    scheduler_decay_after_warmup: bool = False
+ 
+     vlm_model_name: str = "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"  # Select the VLM backbone.
+     load_vlm_weights: bool = False  # Set to True in case of training the expert from scratch. True when init from pretrained SmolVLA weights
+@@ -140,6 +142,8 @@ class SmolVLAConfig(PreTrainedConfig):
+             decay_lr=self.scheduler_decay_lr,
+             num_warmup_steps=self.scheduler_warmup_steps,
+             num_decay_steps=self.scheduler_decay_steps,
++            auto_scale=self.scheduler_auto_scale,
++            decay_after_warmup=self.scheduler_decay_after_warmup,
+         )
+ 
+     @property
