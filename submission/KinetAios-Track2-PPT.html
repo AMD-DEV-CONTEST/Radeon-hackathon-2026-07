@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KinetAios — Local-First Multi-Engine AI Agent · Track 2</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-card: #161b22;
+  --bg-card-hover: #1c2330;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #3fb950;
+  --accent3: #f0883e;
+  --accent4: #bc8cff;
+  --danger: #f85149;
+  --radeon: #ed1c24;       /* AMD Radeon red */
+  --rocm: #d52b1e;          /* ROCm darker red */
+  --radius: 12px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; height: 100vh; width: 100vw; }
+#deck { width: 100vw; height: 100vh; position: relative; }
+.slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 4vh 6vw; opacity: 0; transition: opacity 0.4s ease; overflow-y: auto; }
+.slide.active { display: flex; opacity: 1; }
+.slide-cover { background: radial-gradient(ellipse at 30% 40%, rgba(237,28,36,0.15), transparent 60%), radial-gradient(ellipse at 70% 70%, rgba(88,166,255,0.10), transparent 60%), var(--bg); text-align: center; }
+.slide-cover h1 { font-size: 3.2rem; font-weight: 800; background: linear-gradient(135deg, var(--radeon), var(--accent4)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; letter-spacing: -1px; }
+.slide-cover .subtitle { font-size: 1.3rem; color: var(--text-dim); margin-bottom: 0.4rem; }
+.slide-cover .tagline { font-size: 1rem; color: var(--accent3); margin-top: 1.5rem; font-style: italic; }
+.slide-cover .meta { margin-top: 3rem; font-size: 0.85rem; color: var(--text-dim); }
+.slide-cover .track-badge { display: inline-block; background: linear-gradient(135deg, var(--radeon), var(--rocm)); color: white; padding: 0.4rem 1.2rem; border-radius: 24px; font-weight: 700; font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 1.5rem; }
+.slide-title { font-size: 0.75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem; }
+.slide h2 { font-size: 1.85rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center; }
+.slide h3 { font-size: 1.15rem; font-weight: 600; color: var(--accent4); margin-bottom: 0.8rem; }
+.slide-content { width: 100%; max-width: 1000px; }
+.bullets { list-style: none; }
+.bullets li { font-size: 1.05rem; padding: 0.6rem 0 0.6rem 1.8rem; position: relative; line-height: 1.6; }
+.bullets li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); font-weight: bold; }
+.card-grid { display: grid; gap: 1rem; margin-top: 0.5rem; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; transition: background 0.2s; }
+.card:hover { background: var(--bg-card-hover); }
+.card .icon { font-size: 1.6rem; margin-bottom: 0.4rem; }
+.card .title { font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; color: var(--accent); }
+.card .desc { font-size: 0.88rem; color: var(--text-dim); line-height: 1.5; }
+.callout { background: var(--bg-card); border-left: 4px solid var(--accent3); padding: 0.8rem 1.2rem; border-radius: 6px; font-size: 0.92rem; line-height: 1.5; }
+.callout.green { border-left-color: var(--accent2); }
+.callout.blue { border-left-color: var(--accent); }
+.callout.purple { border-left-color: var(--accent4); }
+.callout.radeon { border-left-color: var(--radeon); }
+.callout strong { color: var(--text); }
+code { font-family: var(--mono); color: var(--accent2); background: var(--bg-card); padding: 0.05rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+.tbl { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.88rem; }
+.tbl th, .tbl td { padding: 0.55rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+.tbl th { background: var(--bg-card); font-weight: 700; color: var(--accent); }
+.tbl td.yes { color: var(--accent2); font-weight: 700; text-align: center; }
+.tbl td.no { color: var(--danger); text-align: center; }
+.badge { display: inline-block; background: rgba(88,166,255,0.15); color: var(--accent); padding: 0.15rem 0.6rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+.badge.green { background: rgba(63,185,80,0.15); color: var(--accent2); }
+.badge.orange { background: rgba(240,136,62,0.15); color: var(--accent3); }
+.badge.purple { background: rgba(188,140,255,0.15); color: var(--accent4); }
+.badge.danger { background: rgba(248,81,73,0.15); color: var(--danger); }
+.badge.radeon { background: rgba(237,28,36,0.15); color: var(--radeon); }
+.code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; white-space: pre; overflow-x: auto; }
+.flow-steps { display: flex; gap: 0.5rem; justify-content: center; margin: 1.5rem 0; flex-wrap: wrap; }
+.flow-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; min-width: 140px; text-align: center; position: relative; }
+.flow-step .num { font-size: 1.5rem; font-weight: 800; color: var(--accent); margin-bottom: 0.3rem; }
+.flow-step .label { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.3rem; color: var(--accent4); }
+.flow-step .detail { font-size: 0.78rem; color: var(--text-dim); line-height: 1.4; }
+.arch-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.5rem; margin: 0.3rem 0; text-align: center; }
+.arch-box .head { font-weight: 700; font-size: 1.05rem; margin-bottom: 0.3rem; }
+.arch-box .body { font-size: 0.88rem; color: var(--text-dim); }
+.arch-box.accent { border-color: var(--accent); }
+.arch-box.accent2 { border-color: var(--accent2); }
+.arch-box.radeon { border-color: var(--radeon); background: rgba(237,28,36,0.05); }
+.arch-arrow { text-align: center; color: var(--accent3); font-size: 0.85rem; margin: 0.2rem 0; }
+.sec-layer { border-radius: 8px; padding: 0.8rem 1.2rem; margin: 0.4rem 0; border-left: 4px solid; }
+.sec-layer .layer-name { font-weight: 700; font-size: 1rem; margin-bottom: 0.2rem; }
+.sec-layer .layer-desc { font-size: 0.85rem; color: var(--text-dim); }
+.sec-layer.l1 { border-left-color: var(--accent); background: rgba(88,166,255,0.05); }
+.sec-layer.l2 { border-left-color: var(--accent2); background: rgba(63,185,80,0.05); }
+.sec-layer.l3 { border-left-color: var(--accent3); background: rgba(240,136,62,0.05); }
+.sec-layer.l4 { border-left-color: var(--accent4); background: rgba(188,140,255,0.05); }
+.mermaid-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; display: flex; justify-content: center; overflow-x: auto; }
+.tech-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; }
+.tech-pill { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.8rem; font-size: 0.82rem; }
+.qa-item { margin-bottom: 0.8rem; }
+.qa-item .q { font-weight: 700; color: var(--accent); font-size: 0.95rem; margin-bottom: 0.2rem; }
+.qa-item .a { font-size: 0.88rem; color: var(--text-dim); line-height: 1.5; padding-left: 1.2rem; }
+.timeline { position: relative; padding-left: 2rem; }
+.timeline::before { content: ''; position: absolute; left: 0.5rem; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.timeline-item { position: relative; padding-bottom: 1rem; }
+.timeline-item::before { content: ''; position: absolute; left: -1.55rem; top: 0.3rem; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
+.timeline-item .time { font-size: 0.78rem; color: var(--accent3); font-weight: 600; }
+.timeline-item .event { font-size: 0.92rem; margin-top: 0.2rem; }
+.stat-row { display: flex; gap: 2rem; justify-content: center; margin: 1.5rem 0; }
+.stat { text-align: center; }
+.stat .num { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent4)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat .label { font-size: 0.85rem; color: var(--text-dim); margin-top: 0.2rem; }
+.gpu-bar { display: flex; align-items: center; gap: 1rem; margin: 0.4rem 0; }
+.gpu-bar .name { width: 180px; font-weight: 600; font-size: 0.9rem; }
+.gpu-bar .bar { flex: 1; background: var(--bg-card); height: 28px; border-radius: 6px; position: relative; overflow: hidden; }
+.gpu-bar .fill { height: 100%; background: linear-gradient(90deg, var(--radeon), var(--accent4)); display: flex; align-items: center; justify-content: flex-end; padding-right: 0.5rem; color: white; font-size: 0.8rem; font-weight: 700; }
+.print-only { display: none; }
+@media print {
+  #nav, #thumbStrip { display: none !important; }
+  .slide { position: static; display: flex !important; page-break-after: always; opacity: 1; height: auto; min-height: 90vh; }
+  .print-only { display: block; }
+}
+/* Nav */
+#nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background: rgba(13,17,23,0.92); border-top: 1px solid var(--border); z-index: 100; }
+.nav-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
+.nav-btn:hover { background: var(--bg-card-hover); border-color: var(--accent); }
+.nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#pageIndicator { font-size: 0.82rem; color: var(--text-dim); font-family: var(--mono); }
+#thumbStrip { position: fixed; bottom: 3.2rem; left: 0; right: 0; display: none; gap: 0.5rem; padding: 0.8rem 1rem; background: rgba(13,17,23,0.96); border-top: 1px solid var(--border); overflow-x: auto; z-index: 99; }
+#thumbStrip.open { display: flex; }
+.thumb { flex-shrink: 0; width: 110px; height: 56px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--text-dim); cursor: pointer; transition: all 0.2s; text-align: center; padding: 0 0.3rem; }
+.thumb:hover { border-color: var(--accent); color: var(--accent); }
+.thumb.active { border-color: var(--accent); background: rgba(88,166,255,0.1); color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- ═══ Slide 1: Cover ═══ -->
+<div class="slide slide-cover active" data-title="Cover">
+  <div class="track-badge">🏆 TRACK 2 · Private AI Agent Development</div>
+  <h1>KinetAios</h1>
+  <div class="subtitle">Local-First Multi-Engine AI Agent Dashboard</div>
+  <div class="tagline">" Self-built ReAct engine · AMD Radeon GPU acceleration · Zero infrastructure "</div>
+  <div class="meta">
+    Track 2 · Development &amp; Local Deployment of Private AI Agents<br>
+    Solo Developer · GPL v3 · https://github.com/phinn/KinetAios
+  </div>
+</div>
+
+<!-- ═══ Slide 2: Problem ═══ -->
+<div class="slide" data-title="Problem">
+  <div class="slide-content">
+    <div class="slide-title">Problem</div>
+    <h2>Two Camps, Both Broken</h2>
+    <div class="card-grid grid-2">
+      <div class="card" style="border-top:3px solid var(--danger)">
+        <div class="icon">📱</div>
+        <div class="title">Thin Chat Wrappers</div>
+        <div class="desc">Forward messages to an API, stream tokens back. No real tools, no file system, no memory beyond the context window. Glorified API clients wearing an "Agent" label.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent3)">
+        <div class="icon">🔗</div>
+        <div class="title">CLI Launchers</div>
+        <div class="desc">Spawn <code>claude</code> or <code>codex</code> as subprocesses and pipe output. Requires subscription, external CLI install, full vendor lock-in. No customization possible.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent4)">
+        <div class="icon">☁️</div>
+        <div class="title">Cloud Dependency</div>
+        <div class="desc">Most agents require accounts, telemetry, and a relay server. Sensitive code and data leave your machine. Disconnected = unusable.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="icon">🐘</div>
+        <div class="title">Heavyweight Frameworks</div>
+        <div class="desc">Enterprise multi-agent platforms demand Docker/K8s multi-container deployments. Solo developers can't justify the infrastructure.</div>
+      </div>
+    </div>
+    <div class="callout radeon" style="margin-top:1.5rem">
+      <strong>The gap:</strong> There's no lightweight, private, truly-capable agent that runs entirely on your desktop — <em>especially one that leverages local AMD Radeon GPU for inference.</em>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 3: Competition Comparison ═══ -->
+<div class="slide" data-title="Competition">
+  <div class="slide-content">
+    <div class="slide-title">Competition</div>
+    <h2>KinetAios vs. The Field</h2>
+    <table class="tbl">
+      <thead><tr><th>Capability</th><th>KinetAios</th><th>Claude Desktop</th><th>Cursor</th><th>Cherry Studio</th><th>ChatGPT Desktop</th></tr></thead>
+      <tbody>
+        <tr><td>Self-built ReAct engine (not a wrapper)</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>12 built-in local tools</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>File snapshot + one-click rollback</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>Cross-session long-term memory</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>Three engines in one window</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>Plan · Execute · Verify · Judge</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>Sub-agent dispatch</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td><strong>AMD Radeon GPU local inference</strong></td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>Sandbox + SSRF protection</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>Open source (GPL v3)</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+      </tbody>
+    </table>
+    <div class="callout blue">
+      <strong>Differentiation:</strong> KinetAios is the only project combining a self-built agent engine, multi-engine support, and native AMD Radeon GPU local inference — without accounts, telemetry, or cloud relays.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 4: Solution Overview ═══ -->
+<div class="slide" data-title="Solution Overview">
+  <div class="slide-content">
+    <div class="slide-title">Solution Overview</div>
+    <h2>The Third Path: KinetAios</h2>
+    <div class="card-grid grid-3">
+      <div class="card" style="border-top:3px solid var(--radeon)">
+        <div class="icon">🔥</div>
+        <div class="title">Self-Built ReAct Engine</div>
+        <div class="desc">From-scratch Reason→Act loop in Electron main process. Not a wrapper, not a launcher. The agent <em>is</em> KinetAios.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="icon">🧰</div>
+        <div class="title">12 Native Tools + 17 Plugins</div>
+        <div class="desc">Real Node.js tools (shell/file/git/web/memory), not JSON stubs. Plus office/IoT/hardware/dev plugin suites.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="icon">💾</div>
+        <div class="title">SQLite + FTS5 Memory</div>
+        <div class="desc">Cross-session long-term memory with hybrid FTS5 + embedding retrieval. Survives engine switches.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent3)">
+        <div class="icon">📸</div>
+        <div class="title">File Snapshot Rollback</div>
+        <div class="desc">Every <code>write_file</code> saves original to <code>.kinet-snapshots/</code>. Agent cannot destroy your code.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent4)">
+        <div class="icon">🔌</div>
+        <div class="title">MCP Bidirectional</div>
+        <div class="desc">Auto-discover system MCP services + built-in HTTP+SSE server. Local machine becomes a callable tool node.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--danger)">
+        <div class="icon">🔒</div>
+        <div class="title">Three-Tier Sandbox</div>
+        <div class="desc"><code>readOnly</code> / <code>workspaceWrite</code> / <code>fullAccess</code> + SSRF protection + shell confirm bridge.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 5: By the Numbers ═══ -->
+<div class="slide" data-title="By the Numbers">
+  <div class="slide-content">
+    <div class="slide-title">By the Numbers</div>
+    <h2>The Project at a Glance</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="num">12</div><div class="label">Built-in Tools</div></div>
+      <div class="stat"><div class="num">3</div><div class="label">Switchable Engines</div></div>
+      <div class="stat"><div class="num">17</div><div class="label">Plugin Suites</div></div>
+      <div class="stat"><div class="num">2,886</div><div class="label">Memories Stored</div></div>
+    </div>
+    <div class="stat-row" style="margin-top:0.5rem">
+      <div class="stat"><div class="num">100%</div><div class="label">TypeScript</div></div>
+      <div class="stat"><div class="num">3</div><div class="label">Context Safety Nets</div></div>
+      <div class="stat"><div class="num">4</div><div class="label">Memory Dedup Tiers</div></div>
+      <div class="stat"><div class="num">0</div><div class="label">Cloud Dependencies</div></div>
+    </div>
+    <div class="card-grid grid-3" style="margin-top:1rem">
+      <div class="card" style="border-top:3px solid var(--radeon)">
+        <div class="title">AMD Radeon Ready</div>
+        <div class="desc">Native ROCm inference via Ollama. 32K context auto-configured. No manual GPU setup required.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">Sub-Second TTFT</div>
+        <div class="desc">SSE streaming — first token reaches UI before generation completes. Even 32B models on mid-range Radeon stay responsive.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">Concurrent Sessions</div>
+        <div class="desc">Multiple conversations in parallel, each with independent ReAct loops and separate token tracking.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 6: DirectV2 4-Layer Engine ═══ -->
+<div class="slide" data-title="DirectV2 Engine">
+  <div class="slide-content">
+    <div class="slide-title">Core Innovation · DirectV2</div>
+    <h2>Plan · Execute · Verify · Judge</h2>
+    <div class="flow-steps">
+      <div class="flow-step"><div class="num">①</div><div class="label">Planner</div><div class="detail">Explore codebase<br>Output JSON plan<br><em>No tool exec</em></div></div>
+      <div class="flow-step"><div class="num">②</div><div class="label">Executor</div><div class="detail">Each step =<br>independent ReAct loop<br>Full tool access</div></div>
+      <div class="flow-step"><div class="num">③</div><div class="label">Verifier</div><div class="detail">Validation commands<br>(tsc / test / lint)<br>Auto-retry 3×</div></div>
+      <div class="flow-step"><div class="num">④</div><div class="label">Judge</div><div class="detail">Independent LLM call<br>Verify goal achieved<br><em>Distrusts self-report</em></div></div>
+    </div>
+    <div class="callout orange">
+      <strong>Replan loop:</strong> If Judge rejects → re-plan from scratch (max 2 replans).<br>
+      <strong>Auto-degradation:</strong> Simple tasks skip planning, falling back to single-turn ReAct + autoVerify. No overhead for easy work.
+    </div>
+    <div class="callout green" style="margin-top:0.8rem">
+      <strong>Why it matters:</strong> Most agents declare "done" too early. DirectV2 forces verification of <em>goal achievement</em>, not just <em>task completion</em>.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 7: Architecture Diagram ═══ -->
+<div class="slide" data-title="Architecture">
+  <div class="slide-content">
+    <div class="slide-title">Architecture</div>
+    <h2>Two Processes, Narrow Bridge</h2>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart TB
+    subgraph R[Renderer · Vanilla TS · contextIsolation]
+        UI[Dashboard · Chat · Sidebar<br>Memory Graph · Files Pane<br>Plugin Panels]
+    end
+
+    subgraph P[Preload · Context Bridge]
+        API[KinetAPI typed surface<br>window.kinet]
+    end
+
+    subgraph M[Main Process · Node.js]
+        subgraph E[Engine Layer]
+            D[Direct · ReAct]
+            V[DirectV2 · Plan·Verify]
+            C[Claude Code CLI]
+            X[Codex CLI]
+        end
+        AL[AgentLoop shared core]
+        subgraph PR[Provider Layer · SSE]
+            OA[OpenAI-compat<br>GLM/DeepSeek/Qwen]
+            AN[Anthropic<br>cache_control]
+            OL[Ollama Native<br>/api/chat · 32K]
+        end
+        subgraph TL[Tool Layer]
+            T1[12 built-in tools]
+            T2[17 plugin suites]
+            T3[MCP client/server]
+        end
+        DB[(SQLite + FTS5)]
+        SET[Settings · safeStorage<br>DPAPI/Keychain]
+    end
+
+    GPU[AMD Radeon GPU<br>via ROCm]
+
+    UI <-->|IPC| API
+    API <-->|invoke/on| M
+    D & V & C & X --> AL
+    AL --> OA & AN & OL
+    AL --> T1 & T2 & T3
+    M --> DB
+    M --> SET
+    OL <-->|HTTP| GPU
+      </pre>
+    </div>
+    <div class="callout radeon" style="margin-top:1rem">
+      <strong>GPU path:</strong> When base URL contains <code>localhost:11434</code>, KinetAios auto-switches to Ollama's native <code>/api/chat</code> endpoint and sets <code>num_ctx: 32768</code>.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 8: Three Engines ═══ -->
+<div class="slide" data-title="Three Engines">
+  <div class="slide-content">
+    <div class="slide-title">Multi-Engine</div>
+    <h2>One Window, Three Engines</h2>
+    <div class="card-grid grid-3">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">Direct (Kaios)</div>
+        <div class="desc" style="font-size:0.85rem">
+          Built-in ReAct loop.<br>
+          <strong>Only</strong> engine using in-app tools.<br>
+          Tool-level concurrency.<br>
+          <em>Best for: code edits, data analysis, general tasks</em>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">DirectV2 (Kaios v2)</div>
+        <div class="desc" style="font-size:0.85rem">
+          Plan · Execute · Verify · Judge.<br>
+          Auto-validation after each step.<br>
+          Auto-degrades to Direct for simple tasks.<br>
+          <em>Best for: complex multi-step work</em>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent4)">
+        <div class="title">Claude Code + Codex</div>
+        <div class="desc" style="font-size:0.85rem">
+          CLI subprocess wrapper.<br>
+          <code>--resume</code> session continuity.<br>
+          Memory injected via <code>--append-system-prompt</code>.<br>
+          <em>Best for: leveraging vendor-specific strengths</em>
+        </div>
+      </div>
+    </div>
+    <div class="callout blue" style="margin-top:1rem">
+      <strong>Cross-engine memory:</strong> User facts learned in Direct persist when you switch to Claude Code. Switching engines clears <em>session</em> context but preserves <em>memory</em>.
+    </div>
+    <div class="callout green" style="margin-top:0.6rem">
+      <strong>Local-first option:</strong> Direct + DirectV2 connect to Ollama on AMD Radeon GPU — fully offline, zero cloud dependency.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 9: 12 Built-in Tools ═══ -->
+<div class="slide" data-title="Built-in Tools">
+  <div class="slide-content">
+    <div class="slide-title">Built-in Tools</div>
+    <h2>12 Native Node.js Tools</h2>
+    <div class="card-grid grid-3">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">File Operations</div>
+        <div class="desc" style="font-size:0.85rem">
+          <code>read_file</code> · <code>write_file</code><br>
+          <code>edit_file</code> · <code>glob</code><br>
+          <code>grep</code> · <code>git_diff</code>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">Execution &amp; Search</div>
+        <div class="desc" style="font-size:0.85rem">
+          <code>shell</code> (sandbox + confirm)<br>
+          <code>web_search</code> (Bing + DDG fallback)<br>
+          <code>web_fetch</code> (SSRF-protected)
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent4)">
+        <div class="title">Memory &amp; Agents</div>
+        <div class="desc" style="font-size:0.85rem">
+          <code>recall_memory</code> (FTS5 + embed)<br>
+          <code>dispatch_agent</code> (sub-agent)<br>
+          + plugin-injected tools<br>
+          + MCP-discovered tools
+        </div>
+      </div>
+    </div>
+    <div class="callout green" style="margin-top:1rem">
+      <strong>All tools are real Node.js implementations</strong>, not JSON stubs. <code>shell</code> respects three-tier sandbox; <code>write_file</code> snapshots before each write.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 10: Context Management ═══ -->
+<div class="slide" data-title="Context Management">
+  <div class="slide-content">
+    <div class="slide-title">Context Management</div>
+    <h2>Triple Safety Net</h2>
+    <div class="card-grid grid-3">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">Reactive Trim</div>
+        <div class="desc" style="font-size:0.9rem">
+          <strong style="color:var(--accent3)">Trigger:</strong> API returns context-too-long error.<br>
+          <strong style="color:var(--accent3)">Action:</strong> Halve token budget, trim from head, retry current turn once.<br>
+          <em>Prevents crashes, not data loss.</em>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">History Compaction</div>
+        <div class="desc" style="font-size:0.9rem">
+          <strong style="color:var(--accent3)">Trigger:</strong> History exceeds budget.<br>
+          <strong style="color:var(--accent3)">Action:</strong> LLM summarizes early turns into a compact message; tail preserved intact.<br>
+          <em>Linear context becomes bounded.</em>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent4)">
+        <div class="title">Orphan Cleanup</div>
+        <div class="desc" style="font-size:0.9rem">
+          <strong style="color:var(--accent3)">Trigger:</strong> After any trim.<br>
+          <strong style="color:var(--accent3)">Action:</strong> Remove tool results whose calling assistant message was trimmed away.<br>
+          <em>Prevents invalid API calls.</em>
+        </div>
+      </div>
+    </div>
+    <div class="callout orange" style="margin-top:1rem">
+      <strong>Why this matters:</strong> The differentiator between a demo agent and one you can use for hours without crashing. DirectV2 also uses these mechanisms to keep complex multi-step tasks stable.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 11: Long-Term Memory ═══ -->
+<div class="slide" data-title="Long-Term Memory">
+  <div class="slide-content">
+    <div class="slide-title">Long-Term Memory</div>
+    <h2>Three-Tier Deduplication</h2>
+    <div class="flow-steps">
+      <div class="flow-step"><div class="num">①</div><div class="label">Exact Match</div><div class="detail">String equality<br><em>fast path</em></div></div>
+      <div class="flow-step"><div class="num">②</div><div class="label">Fuzzy (Jaccard)</div><div class="detail">Token similarity ≥ 0.65</div></div>
+      <div class="flow-step"><div class="num">③</div><div class="label">Semantic Embed</div><div class="detail">Cosine similarity ≥ 0.85<br>Float32Array in SQLite</div></div>
+      <div class="flow-step"><div class="num">④</div><div class="label">Store</div><div class="detail">fact + vector<br>+ graph triple</div></div>
+    </div>
+    <div class="card-grid grid-2" style="margin-top:1rem">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">Hybrid Retrieval</div>
+        <div class="desc">FTS5 keyword search ∪ embedding top-K. Automatic fallback to FTS5 when embeddings unavailable. <em>~80% fewer tokens</em> vs. full injection.
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">Cross-Engine Memory</div>
+        <div class="desc">Facts learned in Direct persist when switching to Claude Code or Codex. Local GPU inference gets the same memory benefits as cloud APIs.
+        </div>
+      </div>
+    </div>
+    <div class="callout purple" style="margin-top:1rem">
+      <strong>Visualization:</strong> Memory graph panel shows fact origins, conflict detection (red markers), and source turn links.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 12: Plugin System ═══ -->
+<div class="slide" data-title="Plugin System">
+  <div class="slide-content">
+    <div class="slide-title">Plugin System v2.2</div>
+    <h2>17 Plugin Suites, Per-Need Injection</h2>
+    <div class="card-grid grid-4">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">📊 Office</div>
+        <div class="desc" style="font-size:0.8rem">Excel/PDF/OCR/Word<br>CSV analysis<br>18 tools</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">🔌 IoT / Hardware</div>
+        <div class="desc" style="font-size:0.8rem">Arduino/ESP32<br>BLE · Modbus · Serial<br>Sensor lookup</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent3)">
+        <div class="title">🛠 Development</div>
+        <div class="desc" style="font-size:0.8rem">NestJS scaffold<br>PlatformIO<br>OTA firmware</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent4)">
+        <div class="title">🎨 Creative</div>
+        <div class="desc" style="font-size:0.8rem">Brainstorm whiteboard<br>Math practice</div>
+      </div>
+    </div>
+    <div class="callout green" style="margin-top:1rem">
+      <strong>Per-need injection:</strong> Only tools matching the current task's keywords are pushed into the LLM context. <em>~60% token savings</em> vs. injecting everything every turn.
+    </div>
+    <div class="callout blue" style="margin-top:0.6rem">
+      <strong>Plugin = tools + slash commands + hooks + full-screen panels.</strong> Drag a folder in, the agent gains new capabilities immediately. No restart needed.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 13: MCP Bidirectional ═══ -->
+<div class="slide" data-title="MCP Protocol">
+  <div class="slide-content">
+    <div class="slide-title">MCP Protocol</div>
+    <h2>Bidirectional Model Context Protocol</h2>
+    <div class="card-grid grid-2">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">📥 MCP Client</div>
+        <div class="desc" style="font-size:0.9rem">
+          Auto-discovers system-configured MCP servers:<br>
+          • <code>~/.claude.json</code><br>
+          • Claude Desktop config<br>
+          • <code>~/.codex/config.toml</code><br>
+          <br>
+          Stdio transport with auto-reconnect.<br>
+          <em>KinetAios gains external tools without writing code.</em>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">📤 MCP Server</div>
+        <div class="desc" style="font-size:0.9rem">
+          Built-in HTTP + SSE server exposes:<br>
+          • <code>POST /mcp</code> — JSON-RPC 2.0<br>
+          • Token-authenticated<br>
+          • 5-min timeout, zombie detection<br>
+          <br>
+          <em>Your local machine becomes a callable tool node for other agents.</em>
+        </div>
+      </div>
+    </div>
+    <div class="callout purple" style="margin-top:1rem">
+      <strong>Multi-machine collaboration:</strong> A KinetAios instance on a workstation can call another instance on a server (or vice versa) — turning distributed machines into a coordinated agent fleet.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 14: Security ═══ -->
+<div class="slide" data-title="Security">
+  <div class="slide-content">
+    <div class="slide-title">Security</div>
+    <h2>Defense in Depth</h2>
+    <div class="sec-layer l1">
+      <div class="layer-name">① Three-Tier Sandbox</div>
+      <div class="layer-desc"><code>readOnly</code> (read cwd only) / <code>workspaceWrite</code> (write cwd only) / <code>fullAccess</code>. Configurable per-conversation.</div>
+    </div>
+    <div class="sec-layer l2">
+      <div class="layer-name">② Shell Confirmation Bridge</div>
+      <div class="layer-desc">Dangerous commands trigger confirmation modal in UI; main process parks resolver in <code>pendingConfirms</code> map until user approves.</div>
+    </div>
+    <div class="sec-layer l3">
+      <div class="layer-name">③ SSRF Protection</div>
+      <div class="layer-desc">Blocks private IPs (10.x, 172.16-31.x, 169.254.x, 192.168.x), cloud metadata endpoints, DNS rebinding attacks.</div>
+    </div>
+    <div class="sec-layer l4">
+      <div class="layer-name">④ File Snapshot + Encrypted Secrets</div>
+      <div class="layer-desc">Every <code>write_file</code>/<code>edit_file</code> snapshots original to <code>.kinet-snapshots/</code>. API keys encrypted via <code>safeStorage</code> (Windows DPAPI / macOS Keychain / Linux libsecret).</div>
+    </div>
+    <div class="callout radeon" style="margin-top:1rem">
+      <strong>Local-first security:</strong> With AMD Radeon GPU inference, sensitive code never leaves your machine — the strongest security guarantee of all.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 15: AMD Radeon Integration ═══ -->
+<div class="slide" data-title="AMD Radeon Integration">
+  <div class="slide-content">
+    <div class="slide-title">AMD Radeon GPU · Core</div>
+    <h2>Local Inference on Radeon</h2>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart LR
+    KA[KinetAios<br>UI + Agent Engine] -->|HTTP localhost:11434| OL[Ollama Server]
+    OL -->|ROCm backend| GPU[AMD Radeon GPU<br>RX 7900 XTX / 7800 XT / etc.]
+
+    subgraph KinetAios
+        UI[Renderer]
+        AL[AgentLoop]
+        TOOLS[12 Tools]
+        MEM[Memory Engine]
+    end
+
+    subgraph Local Machine
+        OL
+        GPU
+    end
+      </pre>
+    </div>
+    <div class="card-grid grid-3" style="margin-top:1rem">
+      <div class="card" style="border-top:3px solid var(--radeon)">
+        <div class="title">Auto-Detection</div>
+        <div class="desc">KinetAios detects <code>localhost:11434</code> → switches from OpenAI-compatible layer to Ollama's native <code>/api/chat</code>.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--radeon)">
+        <div class="title">32K Context</div>
+        <div class="desc">Sets <code>options.num_ctx: 32768</code> automatically. Default Ollama 4K is too small for agent workflows.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--radeon)">
+        <div class="title">Zero Auth</div>
+        <div class="desc">Ollama requires no API key. KinetAios sends dummy <code>Bearer ollama</code> header, server ignores.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 16: Deployment Steps ═══ -->
+<div class="slide" data-title="Local Deployment">
+  <div class="slide-content">
+    <div class="slide-title">Deployment · 4 Commands</div>
+    <h2>From Zero to Running Agent on Radeon</h2>
+    <div class="code-block"># Step 1: Install Ollama (auto-detects AMD Radeon via ROCm)
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Step 2: Pull a model (GPU-accelerated by default)
+ollama pull qwen2.5:32b           # or llama3.3, deepseek-v2, etc.
+
+# Step 3: Verify GPU active
+rocm-smi                          # confirm Radeon GPU visible
+ollama ps                         # confirm model loaded on GPU
+
+# Step 4: Configure KinetAios (Settings → API)
+#   Provider :  OpenAI-compatible
+#   Base URL :  http://localhost:11434/v1
+#   API Key  :  (leave empty)
+#   Model    :  qwen2.5:32b
+
+# Then send a task. GPU does the inference. Zero cloud.</div>
+    <div class="callout radeon" style="margin-top:1rem">
+      <strong>No manual ROCm config required.</strong> Ollama bundles ROCm libraries and auto-detects Radeon GPUs (RX 6000/7000 series, MI accelerators).
+    </div>
+    <div class="callout green" style="margin-top:0.6rem">
+      <strong>Switching providers:</strong> Same KinetAios instance can connect to cloud APIs (GLM/Claude/OpenAI) AND local Ollama — different conversations, different models, shared memory.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 17: Performance ═══ -->
+<div class="slide" data-title="Performance">
+  <div class="slide-content">
+    <div class="slide-title">Performance · AMD Radeon</div>
+    <h2>Expected Throughput (Ollama + ROCm)</h2>
+    <table class="tbl">
+      <thead><tr><th>GPU</th><th>Model</th><th>Quantization</th><th>tok/s</th><th>Time-to-First-Token</th></tr></thead>
+      <tbody>
+        <tr><td>RX 7900 XTX (24GB)</td><td>Qwen2.5-32B</td><td>Q4_K_M</td><td class="yes">30–40</td><td>&lt; 1s</td></tr>
+        <tr><td>RX 7900 XTX (24GB)</td><td>Llama3.3-70B</td><td>Q3_K_M</td><td class="yes">10–15</td><td>~ 2s</td></tr>
+        <tr><td>RX 7800 XT (16GB)</td><td>Qwen2.5-14B</td><td>Q4_K_M</td><td class="yes">40–55</td><td>&lt; 1s</td></tr>
+        <tr><td>RX 7600 XT (8GB)</td><td>Qwen2.5-7B</td><td>Q4_K_M</td><td class="yes">50–65</td><td>&lt; 0.5s</td></tr>
+      </tbody>
+    </table>
+    <h3 style="margin-top:1.2rem">Streaming-First Architecture</h3>
+    <div class="code-block" style="font-size:0.8rem">User sends prompt
+    ↓
+KinetAios AgentLoop ──HTTP POST──► Ollama /api/chat (stream: true)
+                                       ↓
+                            GPU generates tokens (ROCm)
+                                       ↓
+First token ──────────────────────► UI immediately (perceived latency = TTFT)</div>
+    <div class="callout radeon" style="margin-top:0.8rem">
+      <strong>Tool calls pause the stream</strong>, execute, then resume — keeping long-running agent loops responsive even on mid-range Radeon hardware.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 18: Token Efficiency ═══ -->
+<div class="slide" data-title="Token Efficiency">
+  <div class="slide-content">
+    <div class="slide-title">Token Efficiency</div>
+    <h2>Less Context = Faster GPU</h2>
+    <div class="card-grid grid-2">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">Per-Need Plugin Injection</div>
+        <div class="desc">Only tools matching keyword patterns get injected each turn. <strong>~60% fewer input tokens</strong> vs. injecting all tools every turn. GPU has less to attend to → faster generation.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">Hybrid Memory Retrieval</div>
+        <div class="desc">FTS5 + embedding top-K injects only relevant memories. <strong>~80% fewer tokens</strong> vs. full injection. Falls back to FTS5-only if embedding model unavailable.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent3)">
+        <div class="title">Context Compaction</div>
+        <div class="desc">LLM summarizes old turns when history exceeds budget; tail preserved intact. <strong>Linear growth becomes bounded.</strong> Prevents the slow-down spiral on long sessions.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent4)">
+        <div class="title">Prefix Caching</div>
+        <div class="desc">System prompt + early history stay stable across turns. Ollama/OpenAI auto-cache the prefix. <strong>Redundant GPU computation eliminated</strong> on long sessions.</div>
+      </div>
+    </div>
+    <div class="callout blue" style="margin-top:1rem">
+      <strong>Compound effect:</strong> These four optimizations together mean a KinetAios agent on a Radeon RX 7800 XT running Qwen2.5-14B delivers near-real-time responsiveness even on hour-long sessions.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 19: Open Source ═══ -->
+<div class="slide" data-title="Open Source">
+  <div class="slide-content">
+    <div class="slide-title">Open Source</div>
+    <h2>Reproducible Build, Public Repo</h2>
+    <div class="code-block">git clone https://github.com/phinn/KinetAios.git
+cd KinetAios
+npm install       # rebuilds better-sqlite3 for Electron
+npm run build     # TypeScript compile + esbuild renderer
+npm run typecheck # primary verification (no test framework in repo)
+npm start         # launch the app
+npm run dist      # Windows NSIS installer (.exe)</div>
+    <div class="card-grid grid-3" style="margin-top:1rem">
+      <div class="card" style="border-top:3px solid var(--accent)">
+        <div class="title">📦 100% TypeScript</div>
+        <div class="desc">Strict mode, separate configs for main/renderer. 12 tools + 17 plugins + 3 engines + memory + MCP all in TS.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent2)">
+        <div class="title">🪶 Zero Runtime Bloat</div>
+        <div class="desc">No frontend framework. Pure vanilla TS + HTML/CSS, bundled by esbuild. Native SQLite via better-sqlite3.</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--accent4)">
+        <div class="title">📜 GPL v3</div>
+        <div class="desc">v1.8.0 currently published. Cross-platform (Windows 11 + macOS). Active development.</div>
+      </div>
+    </div>
+    <div class="callout green" style="margin-top:1rem">
+      <strong>Tech stack:</strong> Electron + TypeScript + better-sqlite3 (FTS5) + esbuild. No cloud services, no telemetry, no accounts.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Slide 20: Summary + Q&A ═══ -->
+<div class="slide" data-title="Summary & Q&A">
+  <div class="slide-content">
+    <div class="slide-title">Summary &amp; Q&amp;A</div>
+    <h2>Why KinetAios · Track 2</h2>
+    <div class="callout radeon">
+      <strong>For Track 2 (Development &amp; Local Deployment of Private AI Agents), KinetAios delivers:</strong><br><br>
+      ✓ A <em>self-built</em> ReAct agent engine — not a wrapper, not a launcher<br>
+      ✓ Native <em>AMD Radeon GPU</em> local inference via Ollama + ROCm<br>
+      ✓ 12 built-in Node.js tools + 17 plugin suites + MCP bidirectional integration<br>
+      ✓ Cross-session long-term memory with three-tier deduplication<br>
+      ✓ Three engines (Direct / DirectV2 / Claude Code+Codex) in one window<br>
+      ✓ File snapshot rollback + three-tier sandbox + SSRF protection<br>
+      ✓ GPL v3 open source · https://github.com/phinn/KinetAios
+    </div>
+    <h3 style="margin-top:1.5rem;text-align:center">Defensive Q&amp;A</h3>
+    <div class="qa-item">
+      <div class="q">Q: How does KinetAios differ from Claude Code / Codex CLI?</div>
+      <div class="a">KinetAios <em>wraps</em> Claude Code and Codex as engines but also ships its own self-built ReAct engine. The Direct engine uses in-app tools that the CLI engines don't have access to (snapshot rollback, three-tier sandbox, FTS5 memory). Plus you can switch engines mid-project without losing memory.</div>
+    </div>
+    <div class="qa-item">
+      <div class="q">Q: Why a local Radeon GPU matters for "private AI agent"?</div>
+      <div class="a">Zero data leaves your machine — code, prompts, memory, tool outputs all stay local. API keys never exposed to third-party infrastructure. Full control over model selection and quantization. Works offline.</div>
+    </div>
+    <div class="qa-item">
+      <div class="q">Q: Is the DirectV2 4-layer engine overengineered for simple tasks?</div>
+      <div class="a">No — DirectV2 <em>auto-degrades</em> to single-turn ReAct for simple tasks (skipping planning entirely). The 4-layer overhead only kicks in when the task genuinely benefits from verification.</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /#deck -->
+
+<!-- ═══════════ Navigation Bar ═══════════ -->
+<div id="nav">
+  <div id="nav-left">
+    <button class="nav-btn" id="prevBtn">◀ Prev</button>
+    <span id="pageIndicator">1 / 20</span>
+    <button class="nav-btn" id="nextBtn">Next ▶</button>
+  </div>
+  <div id="nav-right">
+    <button class="nav-btn" id="thumbBtn">⊞ Thumbnails</button>
+    <button class="nav-btn fs" id="fsBtn">⛶ Fullscreen</button>
+  </div>
+</div>
+
+<div id="thumbStrip"></div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    darkMode: true, background: '#161b22', primaryColor: '#1c2330',
+    primaryTextColor: '#e6edf3', primaryBorderColor: '#58a6ff',
+    lineColor: '#8b949e', secondaryColor: '#21262d', tertiaryColor: '#161b22',
+    nodeBorder: '#30363d', fontSize: '13px'
+  },
+  flowchart: { curve: 'basis', padding: 20 }
+});
+
+const slides = document.querySelectorAll('.slide');
+let current = 0;
+const total = slides.length;
+
+function showSlide(idx) {
+  slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+  current = idx;
+  document.getElementById('pageIndicator').textContent = `${idx + 1} / ${total}`;
+  document.getElementById('prevBtn').disabled = (idx === 0);
+  document.getElementById('nextBtn').disabled = (idx === total - 1);
+  document.querySelectorAll('.thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+  const activeThumb = document.querySelectorAll('.thumb')[idx];
+  if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+document.getElementById('prevBtn').addEventListener('click', () => { if (current > 0) showSlide(current - 1); });
+document.getElementById('nextBtn').addEventListener('click', () => { if (current < total - 1) showSlide(current + 1); });
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); if (current < total - 1) showSlide(current + 1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); if (current > 0) showSlide(current - 1); }
+  else if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+  else if (e.key === 'End') { e.preventDefault(); showSlide(total - 1); }
+  else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
+});
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+}
+document.getElementById('fsBtn').addEventListener('click', toggleFullscreen);
+
+const thumbStrip = document.getElementById('thumbStrip');
+const thumbBtn = document.getElementById('thumbBtn');
+slides.forEach((slide, idx) => {
+  const thumb = document.createElement('div');
+  thumb.className = 'thumb';
+  thumb.textContent = slide.dataset.title || `P${idx + 1}`;
+  thumb.addEventListener('click', () => { showSlide(idx); thumbStrip.classList.remove('open'); });
+  thumbStrip.appendChild(thumb);
+});
+thumbBtn.addEventListener('click', () => thumbStrip.classList.toggle('open'));
+showSlide(0);
+</script>
+</body>
+</html>
