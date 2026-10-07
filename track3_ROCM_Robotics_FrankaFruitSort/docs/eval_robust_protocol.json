@@ -1,0 +1,102 @@
+{
+  "document_type": "planned_evaluation_protocol",
+  "document_purpose": "Reproducible specification for a 12-episode robustness evaluation of the fine-tuned SmolVLA policy. This file is the empty schema/protocol; the enhanced evaluator writes actual measurements into docs/eval_robust_results.json when it is run.",
+  "not_a_measurement": true,
+  "created_at": "2026-08-05T09:00:00+08:00",
+  "evaluator_script": "submission/src/eval/eval_sort_smolvla_robust.py",
+  "reproduction_command": "python submission/src/eval/eval_sort_smolvla_robust.py --checkpoint outputs/train/smolvla_lerobot/checkpoints/002000 --episodes 12 --perturb 0.02 --seed 42 --fruits plum banana lemon --output docs/eval_robust_results.json --save-video screenshots/eval_robust",
+  "target_platforms": [
+    {
+      "name": "primary",
+      "gpu": "AMD Radeon Pro W7900 (48 GB)",
+      "rocm": "7.2.1",
+      "pytorch": "2.9.1+rocm7.2.1",
+      "instance": "Radeon Cloud",
+      "status": "baseline_2of2_confirmed"
+    },
+    {
+      "name": "secondary_cross_platform",
+      "gpu": "AMD Radeon RX 7900 GRE (16 GB)",
+      "rocm": "5.7",
+      "pytorch": "2.4.1+rocm5.7",
+      "instance": "ModelScope DSW",
+      "status": "environment_verified_run_pending",
+      "requires_runtime_shim": "submission/src/utils/rocm_resize_patch.py"
+    }
+  ],
+  "configuration": {
+    "episodes": 12,
+    "fruits": ["plum", "banana", "lemon"],
+    "episodes_per_fruit": 4,
+    "perturbation_meters": 0.02,
+    "perturbation_axes": ["x", "y"],
+    "perturbation_distribution": "uniform",
+    "seed": 42,
+    "rng_sources_controlled": ["numpy", "torch", "random", "genesis"],
+    "checkpoint_path": "outputs/train/smolvla_lerobot/checkpoints/002000",
+    "dataset_repo_id": "local/sort_fruit",
+    "success_criterion": "target fruit center within 6 cm of target bowl center after release"
+  },
+  "fruit_target_bowl_mapping": {
+    "plum": "purple",
+    "banana": "yellow",
+    "lemon": "yellow"
+  },
+  "output_schema": {
+    "description": "When the evaluator runs successfully, it writes results into docs/eval_robust_results.json with the following top-level fields.",
+    "fields": {
+      "metadata": {
+        "type": "object",
+        "keys": ["generated_at", "platform", "checkpoint", "training_steps", "final_training_loss", "evaluator_script_sha"]
+      },
+      "configuration": {
+        "type": "object",
+        "keys": ["episodes", "fruits", "perturbation", "seed", "fruits_per_episode"]
+      },
+      "aggregate_statistics": {
+        "type": "object",
+        "keys": ["total_episodes", "successful_episodes", "failed_episodes", "success_rate", "success_rate_percent", "mean_steps", "std_steps", "min_steps", "max_steps", "median_steps"]
+      },
+      "per_fruit_statistics": {
+        "type": "object",
+        "value_shape": {
+          "episodes": "int",
+          "successes": "int",
+          "success_rate": "float in [0,1]",
+          "mean_steps": "float",
+          "std_steps": "float",
+          "target_bowl": "str"
+        }
+      },
+      "episodes": {
+        "type": "array",
+        "item_shape": {
+          "id": "str e.g. ep03_lemon_s42",
+          "fruit": "str",
+          "target_bowl": "str",
+          "success": "bool",
+          "steps": "int",
+          "perturb_x": "float meters",
+          "perturb_y": "float meters",
+          "failure_reason": "str, optional"
+        }
+      },
+      "reproducibility": {
+        "type": "object",
+        "keys": ["seed", "rng_sources_controlled", "checkpoint_path", "dataset_repo_id"]
+      }
+    }
+  },
+  "confirmed_baseline_reference": {
+    "source": "logs/eval_results.json",
+    "episodes": 2,
+    "successes": 2,
+    "success_rate": 1.0,
+    "note": "The only closed-loop evaluation actually executed as of this submission. All numbers reported in the Technical Report Section 7.1 headline table come from this file."
+  },
+  "historical_extrapolation_file": {
+    "path": "docs/eval_robust_extrapolation.json",
+    "description": "Design-time pre-run projection generated before the enhanced 12-episode run could be executed. Retained as an internal reference only; MUST NOT be cited as a measurement.",
+    "status": "not_a_measurement"
+  }
+}
