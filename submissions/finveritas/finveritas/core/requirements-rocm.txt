@@ -1,0 +1,51 @@
+# AMD ROCm / vLLM local inference setup
+# ──────────────────────────────────────
+# Run this BEFORE pip install -r requirements.txt
+#
+# 1. Install PyTorch for ROCm (replace rocm6.2 with your ROCm version):
+#    pip install torch torchvision torchaudio \
+#        --index-url https://download.pytorch.org/whl/rocm6.2
+#
+# 2. Install vLLM with ROCm support:
+#    pip install vllm
+#    (vLLM >= 0.4 ships ROCm wheels — no extra flag needed)
+#
+# 3. Start the vLLM OpenAI-compatible server on an AMD Radeon GPU:
+#    HSA_OVERRIDE_GFX_VERSION=11.0.0 \
+#    ROCR_VISIBLE_DEVICES=0 \
+#    vllm serve Qwen/Qwen2.5-7B-Instruct \
+#        --dtype float16 \
+#        --max-model-len 4096 \
+#        --port 8000
+#
+#    Then select "vLLM (AMD ROCm)" in the FinVeritas sidebar.
+#    Base URL: http://localhost:8000/v1
+#    API Key:  not-needed
+#
+# 4. Recommended models (open-source, fit in 8 GB VRAM at float16):
+#    Qwen/Qwen2.5-7B-Instruct          (~14 GB) — best quality
+#    Qwen/Qwen2.5-3B-Instruct          (~6 GB)  — fast, lower VRAM
+#    mistralai/Mistral-7B-Instruct-v0.3 (~14 GB) — strong reasoning
+#
+# 5. Quantised alternatives for GPUs with < 8 GB VRAM:
+#    pip install auto-gptq optimum
+#    Use GPTQ-quantised 4-bit variants from TheBloke on HuggingFace.
+#    Add --quantization gptq to the vllm serve command.
+#
+# ── ROCm version reference ────────────────────────────────────────────────────
+# ROCm 6.x is required for Radeon RX 7000 series (RDNA3 / gfx1100).
+# ROCm 5.7 works for RX 6000 series (RDNA2 / gfx1030).
+# Check your GPU:  rocminfo | grep "gfx"
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Core inference
+vllm>=0.4.0
+# torch + ROCm — install separately via the wheel URL above, not from PyPI
+
+# HuggingFace model download
+huggingface_hub>=0.23
+transformers>=4.40
+
+# Quantisation (optional, for low-VRAM GPUs)
+auto-gptq>=0.7
+optimum>=1.19
