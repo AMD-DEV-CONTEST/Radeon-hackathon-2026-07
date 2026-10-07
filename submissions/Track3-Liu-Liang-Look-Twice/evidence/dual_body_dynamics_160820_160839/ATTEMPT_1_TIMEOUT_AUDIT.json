@@ -1,0 +1,42 @@
+{
+  "schema_version": "look-twice.additive-dual-body-dynamics-timeout-audit/v1",
+  "status": "infrastructure_watchdog_timeout",
+  "attempt": 1,
+  "boundary": {
+    "additive_non_locked": true,
+    "formal_result_eligible": false,
+    "changes_frozen_v8_endpoint": false
+  },
+  "source": {
+    "git_commit": "c17c3a17904af34ba514d68e6e5ad8d1d96a353b",
+    "transfer_bundle_sha256": "9298f7f29cadfe2fae1aab20d6dab4431bd4521887472ac88a32db1e81d5b2de",
+    "script": "scripts/run_v8_additive_dual_body_dynamics.py",
+    "protocol": "docs/V8_ADDITIVE_DUAL_BODY_DYNAMICS_PROTOCOL.md"
+  },
+  "confirmatory_set": {
+    "seed_expression": "160820:160840",
+    "seed_count": 20,
+    "observed_seed_outcome_retried_or_replaced": false,
+    "whole_process_restarted_after_timeout": true
+  },
+  "execution": {
+    "command": "PYTHONUNBUFFERED=1 timeout 3600 /opt/venv/bin/python scripts/run_v8_additive_dual_body_dynamics.py --seeds 160820:160840 --backend amdgpu --output release/v8-derived/dual_body_dynamics_160820_160839/REPORT.json",
+    "outer_watchdog_seconds": 3600,
+    "exit_code": 124,
+    "report_written": false,
+    "per_seed_outcomes_observed": false,
+    "interpretation": "The external watchdog ended the process before the script reached its single end-of-run report write. This attempt provides no pass or fail observation for any seed."
+  },
+  "recovery_rule": {
+    "allowed_change": "Increase only the external watchdog duration.",
+    "classification": "Whole-process execution recovery after an infrastructure timeout, with no observed pass/fail seed outcome from attempt 1.",
+    "unchanged": [
+      "git commit",
+      "script and URDF bytes",
+      "confirmatory seeds",
+      "protocol parameters",
+      "pass thresholds"
+    ],
+    "result_handling": "Retain this timeout audit alongside the complete recovery report, whether that report passes or fails."
+  }
+}

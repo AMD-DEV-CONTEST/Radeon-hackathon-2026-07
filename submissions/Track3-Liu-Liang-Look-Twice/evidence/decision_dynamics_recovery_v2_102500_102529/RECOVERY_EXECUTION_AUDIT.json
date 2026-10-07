@@ -1,0 +1,122 @@
+{
+  "schema_version": "look-twice.additive-decision-dynamics-recovery-v2-execution-audit/v1",
+  "generated_at_utc": "2026-08-04T16:52:24Z",
+  "purpose": "Preserve the failed V1 execution history and bind the separately frozen, checkpointed V2 execution without relabeling either protocol.",
+  "decision_input": {
+    "seed_order": "102500:102530",
+    "trials": 30,
+    "sha256": "59b5d464954e6e03ee4b65f689e93fd4e4ba836a6512509e98df0b7a94d186b0"
+  },
+  "v1_history": {
+    "source_commit": "fd52cb6edb1fbb65aa9ae57b9ee385391c6d5fcc",
+    "execution_layout": "all 90 non-fixed robot entities in one Genesis scene with the 30 fixed records advanced serially",
+    "scientific_result_observed": false,
+    "per_seed_outcomes_exposed": false,
+    "attempts": [
+      {
+        "attempt": 1,
+        "started_at_utc": "2026-08-03T23:39:15Z",
+        "ended_at_utc": "2026-08-04T03:39:16Z",
+        "outer_watchdog_seconds": 14400,
+        "terminal_reason": "external_watchdog_timeout",
+        "report_written": false,
+        "evidence": [
+          "EXECUTION_LOGS/V1_ATTEMPT_1.log",
+          "EXECUTION_LOGS/V1_ATTEMPT_1_MONITOR.log"
+        ]
+      },
+      {
+        "attempt": 2,
+        "started_at_utc": "2026-08-04T03:40:24Z",
+        "ended_at_utc": "2026-08-04T15:40:24Z",
+        "outer_watchdog_seconds": 43200,
+        "exit_code": 124,
+        "terminal_reason": "external_watchdog_timeout",
+        "report_written": false,
+        "evidence": [
+          "EXECUTION_LOGS/V1_RECOVERY_1.status",
+          "EXECUTION_LOGS/V1_RECOVERY_1.log",
+          "EXECUTION_LOGS/V1_RECOVERY_1_MONITOR.log"
+        ]
+      },
+      {
+        "attempt": 3,
+        "started_at_utc": "2026-08-04T15:47:31Z",
+        "ended_at_utc": "2026-08-04T16:28:34Z",
+        "outer_watchdog_seconds": 129600,
+        "exit_code": 143,
+        "terminal_reason": "owner_authorized_switch_to_separately_frozen_v2_after_runtime_scaling_was_observed_without_a_report",
+        "report_written": false,
+        "evidence": [
+          "EXECUTION_LOGS/V1_RECOVERY_2.status",
+          "EXECUTION_LOGS/V1_RECOVERY_2.log",
+          "EXECUTION_LOGS/V1_RECOVERY_2_MONITOR.log",
+          "EXECUTION_LOGS/V1_TO_V2_SWITCH.status"
+        ]
+      }
+    ]
+  },
+  "v2_formal_execution": {
+    "protocol_class": "separate_additive_non_locked_recovery_v2",
+    "source_commit": "b0c4f0d33b0a2d0c647dda0b2b3b7c03279a511a",
+    "source_binding_sha256": "c40f6ba74a39ad761e4926ddb66326f33a1a645fef3c96364f9c53b9d5d3eb5d",
+    "protocol_fixed_at_utc": "2026-08-04T16:24:30Z",
+    "started_at_utc": "2026-08-04T16:29:53Z",
+    "ended_at_utc": "2026-08-04T16:48:14Z",
+    "wall_seconds": 1101,
+    "outer_watchdog_seconds": 21600,
+    "per_worker_watchdog_seconds": 3600,
+    "exit_code": 0,
+    "report_written": true,
+    "report_sha256": "1501e31bdc1bc353d56224f76f0a0f58de574e6c436980bc9c22a7c33104bd99",
+    "remote_verifier_exit_code": 0,
+    "local_byte_identical_verifier_passed": true,
+    "execution_layout": "one fixed seed per fresh Genesis subprocess; one complete paired three-body scene per seed; fixed serial order on one AMD GPU",
+    "sealed_checkpoints": 30,
+    "worker_attempts": 30,
+    "completed_checkpoint_reruns": 0,
+    "seed_replacements": 0,
+    "all_worker_exit_codes_zero": true,
+    "outcomes_exposed_before_completion": false,
+    "evidence": [
+      "SOURCE_BINDING.json",
+      "ATTEMPTS.jsonl",
+      "PROGRESS.json",
+      "TRIALS/102500.json through TRIALS/102529.json",
+      "REPORT.json",
+      "SHA256SUMS",
+      "EXECUTION_LOGS/V2_FORMAL.status",
+      "EXECUTION_LOGS/V2_FORMAL.log",
+      "EXECUTION_LOGS/V2_FORMAL_MONITOR.log"
+    ]
+  },
+  "verified_result": {
+    "passed": 30,
+    "failed": 0,
+    "active_direct_decisions": 29,
+    "active_safe_detours": 1,
+    "distinct_non_fixed_robot_entities_across_run": 90,
+    "active_scout_reached": 30,
+    "active_carrier_reached": 30,
+    "passive_carrier_reached": 30,
+    "direct_pairs_saving_at_least_0_50_m": 29,
+    "paired_mean_loaded_carrier_path_reduction_percent": 20.818281221978634,
+    "maximum_stationary_partner_drift_m": 0.022328848796049957,
+    "maximum_tilt_deg": 10.57960742366676,
+    "total_blocker_contact_rows": 0,
+    "total_active_pair_contact_rows": 0,
+    "post_build_entity_pose_writes": 0
+  },
+  "integrity_conclusion": "V2 removed the V1 all-or-nothing execution failure mode without changing the fixed seeds, archived decisions, scene geometry, wheel controller, or acceptance thresholds. Each completed pass or fail checkpoint was published once, in order, before the next seed began. The formal V2 run completed on the first attempt with no resume, retry, replacement, or result-conditioned tuning.",
+  "claim_boundary": {
+    "additive_non_locked": true,
+    "formal_result_eligible": false,
+    "changes_frozen_v8_endpoint": false,
+    "uses_archived_decisions_without_rerunning_policy": true,
+    "not_simultaneous_90_body_scene": true,
+    "real_robot_result": false,
+    "sim_to_real_result": false,
+    "safety_certification": false,
+    "throughput_or_latency_evidence": false
+  }
+}
